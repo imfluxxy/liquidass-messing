@@ -51,6 +51,7 @@ static NSString * const LGClockLegacyFontStyleRounded = @"rounded";
 static NSString * const LGClockLegacyFontStyleIOS26 = @"ios26";
 static NSString *LGClockRenderingModeKey(void);
 static BOOL LGClockViewIsVisiblyPresent(UIView *view);
+static CGFloat LGClockNearestNotificationTop(UIView *host, UIView *container, CGRect sourceFrame);
 
 static void LGSetLayerTreeOpacity(CALayer *layer, float opacity) {
     if (!layer) return;
@@ -261,6 +262,27 @@ static CGFloat LGClockClampedAxisValue(NSString *axisKey, CGFloat value) {
     return MIN(MAX(value, minimum), maximum);
 }
 
+static NSCache<NSString *, id> *LGClockVariableCTFontCache(void) {
+    static NSCache<NSString *, id> *cache = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cache = [[NSCache alloc] init];
+        cache.countLimit = 256;
+    });
+    return cache;
+}
+
+static NSString *LGClockVariableCTFontCacheKey(CGFloat pointSize, CGFloat heightValue) {
+    return [NSString stringWithFormat:@"%@|%.2f|%.2f|%.2f|%.2f|%.2f|%.2f",
+            sClockVariablePostScriptName ?: @"",
+            pointSize,
+            LGClockClampedAxisValue(@"weight", LGClockVariableFontWeight()),
+            LGClockClampedAxisValue(@"width", LGClockVariableFontWidth()),
+            LGClockClampedAxisValue(@"height", heightValue),
+            LGClockClampedAxisValue(@"softness", LGClockVariableFontSoftness()),
+            LGClockVariableFontSizeScale()];
+}
+
 static NSMutableDictionary *LGClockRequestedVariations(void) {
     NSMutableDictionary *variations = [NSMutableDictionary dictionary];
     NSNumber *weightAxis = sClockVariableAxisIdentifiers[@"weight"];
@@ -287,6 +309,12 @@ static CTFontRef LGClockCreateVariableCTFontForHeight(CGFloat pointSize, CGFloat
     LGEnsureClockVariableFontMetadata();
     if (!sClockVariablePostScriptName.length) return NULL;
 
+    NSString *cacheKey = LGClockVariableCTFontCacheKey(pointSize, heightValue);
+    id cachedFontObject = cacheKey.length ? [LGClockVariableCTFontCache() objectForKey:cacheKey] : nil;
+    if (cachedFontObject) {
+        return (CTFontRef)CFRetain((__bridge CTFontRef)cachedFontObject);
+    }
+
     NSMutableDictionary *variations = LGClockRequestedVariationsForHeight(heightValue);
 
     CTFontDescriptorRef descriptor = NULL;
@@ -307,6 +335,10 @@ static CTFontRef LGClockCreateVariableCTFontForHeight(CGFloat pointSize, CGFloat
               pointSize,
               variations);
         return NULL;
+    }
+    if (cacheKey.length) {
+        [LGClockVariableCTFontCache() setObject:(__bridge_transfer id)renderFont forKey:cacheKey];
+        return (CTFontRef)CFRetain((__bridge CTFontRef)[LGClockVariableCTFontCache() objectForKey:cacheKey]);
     }
     return renderFont;
 }
@@ -1147,6 +1179,7 @@ static UIView *LGClockOverlayContainerForHost(UIView *host) {
 @property (nonatomic, weak) UIView *clockHost;
 @property (nonatomic, weak) UILabel *sourceLabel;
 @property (nonatomic, assign) CGRect cachedSourceFrameInContainer;
+@property (nonatomic, assign) CGFloat cachedNearestNotificationTop;
 @property (nonatomic, assign) CGRect cachedMaskBounds;
 @property (nonatomic, copy) NSString *cachedMaskText;
 @property (nonatomic, copy) NSAttributedString *cachedMaskAttributedText;
@@ -1489,6 +1522,7 @@ static UIView *LGClockOverlayContainerForHost(UIView *host) {
     NSTextAlignment desiredAlignment = label.textAlignment;
     NSAttributedString *desiredAttributed = nil;
     CGFloat desiredTopInset = 0.0;
+    CGFloat desiredNearestNotificationTop = CGFLOAT_MAX;
     if (LGIsLegacyClockHost(host)) {
         UIView *container = self.superview ?: LGClockOverlayContainerForHost(host);
         sourceFrame = [label convertRect:label.bounds toView:container];
@@ -1521,6 +1555,7 @@ static UIView *LGClockOverlayContainerForHost(UIView *host) {
                                                                                 sourceFont,
                                                                                 nil);
         sourceFrame = [label convertRect:label.bounds toView:container];
+        desiredNearestNotificationTop = LGClockNearestNotificationTop(host, container, sourceFrame);
         CGFloat pointSize = MAX(sourceFont.pointSize * LGClockVariableFontSizeScale(), 1.0);
         CGFloat dynamicHeight = LGClockDynamicHeightAxisForContext(label, host, container, sourceFrame);
         CTFontRef renderCTFont = LGClockVariableCTFontForHeight(pointSize, dynamicHeight);
@@ -1539,6 +1574,7 @@ static UIView *LGClockOverlayContainerForHost(UIView *host) {
     }
     self.sourceLabel = label;
     self.cachedSourceFrameInContainer = sourceFrame;
+    self.cachedNearestNotificationTop = desiredNearestNotificationTop;
     self.glassView.bezelWidth = LGClockBezelWidth();
     self.glassView.glassThickness = LGClockGlassThickness();
     self.glassView.refractionScale = LGClockRefractionScale();
@@ -1563,8 +1599,34 @@ static UIView *LGClockOverlayContainerForHost(UIView *host) {
     UILabel *label = self.sourceLabel;
     if (!label || !self.superview || !self.clockHost.window) return;
     if (LGIsModernClockHost(self.clockHost)) {
-        [self syncFromSourceLabel:label];
-        [self layoutIfNeeded];
+        BOOL textChanged = ![(self.displayText ?: @"") isEqualToString:(label.text ?: @"")];
+        BOOL attributedChanged = (self.displayAttributedText || label.attributedText)
+            && ![self.displayAttributedText isEqualToAttributedString:(label.attributedText ?: [[NSAttributedString alloc] initWithString:@""])];
+        BOOL fontChanged = self.displayFont != label.font && ![self.displayFont isEqual:label.font];
+        BOOL alignmentChanged = self.displayAlignment != label.textAlignment;
+        BOOL topInsetChanged = fabs(self.displayTopInset - MAX(0.0, CGRectGetMinY(label.bounds))) > 0.01;
+        UIFont *sourceFont = label.font ?: [UIFont systemFontOfSize:84.0 weight:UIFontWeightBold];
+        UIView *container = self.superview ?: LGClockBestModernOverlayContainer(self.clockHost,
+                                                                                label,
+                                                                                sourceFont,
+                                                                                nil);
+        CGRect sourceFrame = [label convertRect:label.bounds toView:container];
+        CGFloat nearestTop = LGClockNearestNotificationTop(self.clockHost, container, sourceFrame);
+        BOOL nearestTopChanged = NO;
+        if (self.cachedNearestNotificationTop == CGFLOAT_MAX || nearestTop == CGFLOAT_MAX) {
+            nearestTopChanged = self.cachedNearestNotificationTop != nearestTop;
+        } else {
+            nearestTopChanged = fabs(self.cachedNearestNotificationTop - nearestTop) > 0.5;
+        }
+        if (textChanged || attributedChanged || fontChanged || alignmentChanged || topInsetChanged ||
+            nearestTopChanged ||
+            [self lg_rect:self.cachedSourceFrameInContainer differsFromRect:sourceFrame]) {
+            [self syncFromSourceLabel:label];
+            [self layoutIfNeeded];
+            return;
+        }
+        [self lg_updateWallpaperSourceIfNeeded];
+        [self.glassView updateOrigin];
         return;
     }
     BOOL textChanged = ![(self.displayText ?: @"") isEqualToString:(label.text ?: @"")];
