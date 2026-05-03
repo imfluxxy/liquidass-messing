@@ -9,7 +9,6 @@ static const NSInteger kWidgetTintTag       = 0x71D0;
 static void LGWidgetsRefreshAllHosts(void);
 static BOOL LGIsWidgetGlassHostView(UIView *view);
 static void LGRestoreWidgetOriginalState(UIView *view);
-static BOOL LGWidgetViewContainsDescendantNamed(UIView *view, NSString *className, NSInteger depth);
 static void *kWidgetAttachedKey = &kWidgetAttachedKey;
 static void *kWidgetGlassKey = &kWidgetGlassKey;
 static void *kWidgetTintKey = &kWidgetTintKey;
@@ -64,6 +63,25 @@ static BOOL LGViewBelongsToWidgetStack(UIView *view) {
     return NO;
 }
 
+static UIView *LGWidgetFindDescendantNamed(UIView *view, NSString *className) {
+    if (!view) return nil;
+    for (UIView *subview in view.subviews) {
+        if ([NSStringFromClass(subview.class) isEqualToString:className]) return subview;
+        UIView *match = LGWidgetFindDescendantNamed(subview, className);
+        if (match) return match;
+    }
+    return nil;
+}
+
+static BOOL LGWidgetScrollViewContainsWidgetContainer(UIView *view) {
+    if (!view) return NO;
+    if ([NSStringFromClass(view.class) isEqualToString:@"SBHWidgetContainerView"]) return YES;
+    for (UIView *subview in view.subviews) {
+        if (LGWidgetScrollViewContainsWidgetContainer(subview)) return YES;
+    }
+    return NO;
+}
+
 static void LGStartWidgetDisplayLink(void) {
     LGStartDisplayLinkState(&sWidgetDisplayLinkState, LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30), ^{
         LG_updateRegisteredGlassViews(LGUpdateGroupWidgets);
@@ -94,75 +112,58 @@ static UIViewController *LGNearestWidgetStackControllerForView(UIView *view) {
     return nil;
 }
 
-static BOOL LGWidgetViewContainsVisibleLargeMaterialHost(UIView *view, NSInteger depth) {
-    if (!view || depth > 24) return NO;
-    if (LGWidgetHostUsesStockMaterialBlur(view) &&
-        view.bounds.size.width >= 120.0 &&
-        view.bounds.size.height >= 120.0 &&
-        view.alpha > 0.01 &&
-        view.layer.opacity > 0.01f &&
-        !view.hidden) {
-        return YES;
-    }
-    for (UIView *subview in view.subviews) {
-        if (LGWidgetViewContainsVisibleLargeMaterialHost(subview, depth + 1)) return YES;
-    }
-    return NO;
-}
-
-static BOOL LGWidgetHasAncestorClassNamedWithinDepth(UIView *view, NSString *className, NSInteger maxDepth) {
-    UIView *ancestor = view.superview;
-    NSInteger depth = 0;
-    while (ancestor && depth < maxDepth) {
-        if ([NSStringFromClass(ancestor.class) isEqualToString:className]) return YES;
-        ancestor = ancestor.superview;
-        depth++;
-    }
-    return NO;
-}
-
 static BOOL LGWidgetContainerLooksLikeHomescreenWidgetHost(UIView *view) {
     if (!view) return NO;
-    UIView *container = view.superview;
-    if (!container) return NO;
-    if (![NSStringFromClass(container.class) isEqualToString:@"UIView"]) return NO;
-    if (!LGNearestWidgetStackControllerForView(container)) return NO;
-    if (!LGWidgetHasAncestorClassNamedWithinDepth(container, @"SBFTouchPassThroughView", 6)) return NO;
-    if (!LGWidgetHasAncestorClassNamedWithinDepth(container, @"SBIconView", 8)) return NO;
+    if (![NSStringFromClass(view.class) isEqualToString:@"UIView"]) return NO;
+    if (view.bounds.size.width < 120.0 || view.bounds.size.height < 120.0) return NO;
+    if (!LGNearestWidgetStackControllerForView(view)) return NO;
 
-    BOOL hasWidgetScrollSibling = NO;
-    for (UIView *sibling in container.subviews) {
-        if (sibling == view) continue;
-        if (![NSStringFromClass(sibling.class) isEqualToString:@"BSUIScrollView"]) continue;
-        if (!LGWidgetViewContainsDescendantNamed(sibling, @"SBHWidgetContainerView", 0)) continue;
-        hasWidgetScrollSibling = YES;
+    UIView *parent = view.superview;
+    if (!parent) return NO;
+    if (![NSStringFromClass(parent.class) isEqualToString:@"SBFTouchPassThroughView"]) return NO;
+
+    UIView *grandparent = parent.superview;
+    if (!grandparent) return NO;
+    if (![NSStringFromClass(grandparent.class) isEqualToString:@"SBIconView"]) return NO;
+
+    UIView *iconListView = grandparent.superview;
+    if (!iconListView) return NO;
+    if (![NSStringFromClass(iconListView.class) isEqualToString:@"SBIconListView"]) return NO;
+
+    BOOL hasMaterialSibling = NO;
+    for (UIView *sibling in iconListView.subviews) {
+        if (sibling == grandparent) continue;
+        if ([NSStringFromClass(sibling.class) isEqualToString:@"MTMaterialView"]) {
+            hasMaterialSibling = YES;
+            break;
+        }
+    }
+    if (!hasMaterialSibling) return NO;
+
+    BOOL hasWidgetScroll = NO;
+    for (UIView *subview in view.subviews) {
+        if (![NSStringFromClass(subview.class) isEqualToString:@"UIView"] &&
+            ![NSStringFromClass(subview.class) isEqualToString:@"BSUIScrollView"]) {
+            continue;
+        }
+        UIView *scrollView = [NSStringFromClass(subview.class) isEqualToString:@"BSUIScrollView"] ? subview : LGWidgetFindDescendantNamed(subview, @"BSUIScrollView");
+        if (!scrollView) continue;
+        if (!LGWidgetScrollViewContainsWidgetContainer(scrollView)) continue;
+        hasWidgetScroll = YES;
         break;
     }
-    return hasWidgetScrollSibling;
+    return hasWidgetScroll;
 }
 
-static UIView *LGWidgetRawAncestorContainerHostForView(UIView *view) {
+static UIView *LGWidgetAncestorContainerHostForView(UIView *view) {
     UIView *ancestor = view;
     NSInteger depth = 0;
     while (ancestor && depth < 12) {
-        if ([NSStringFromClass(ancestor.class) isEqualToString:@"UIView"] &&
-            LGResponderChainContainsClassNamed(ancestor, @"SBHWidgetStackViewController") &&
-            LGWidgetViewContainsDescendantNamed(ancestor, @"BSUIScrollView", 0) &&
-            ancestor.bounds.size.width >= 120.0 &&
-            ancestor.bounds.size.height >= 120.0) {
-            return ancestor;
-        }
+        if (LGWidgetContainerLooksLikeHomescreenWidgetHost(ancestor)) return ancestor;
         ancestor = ancestor.superview;
         depth++;
     }
     return nil;
-}
-
-static UIView *LGWidgetAncestorContainerHostForView(UIView *view) {
-    UIView *candidate = LGWidgetRawAncestorContainerHostForView(view);
-    if (!candidate) return nil;
-    if (LGWidgetViewContainsVisibleLargeMaterialHost(candidate, 0)) return nil;
-    return candidate;
 }
 
 static NSArray *LGWidgetCleanedFilterArray(NSArray *filters, BOOL *didRemoveAny) {
@@ -200,15 +201,6 @@ static void LGStripWidgetTintFiltersFromLayerTree(CALayer *layer) {
     for (CALayer *sub in layer.sublayers) {
         LGStripWidgetTintFiltersFromLayerTree(sub);
     }
-}
-
-static BOOL LGWidgetViewContainsDescendantNamed(UIView *view, NSString *className, NSInteger depth) {
-    if (!view || depth > 24) return NO;
-    for (UIView *subview in view.subviews) {
-        if ([NSStringFromClass(subview.class) isEqualToString:className]) return YES;
-        if (LGWidgetViewContainsDescendantNamed(subview, className, depth + 1)) return YES;
-    }
-    return NO;
 }
 
 static void removeWidgetOverlays(UIView *view) {
@@ -300,19 +292,8 @@ static BOOL LGIsWidgetGlassHostView(UIView *view) {
     if (!view.window) return NO;
 
     NSString *className = NSStringFromClass(view.class);
-    if ([className isEqualToString:@"MTMaterialView"]) {
-        if (LGHasAncestorClassNamed(view, @"WGShortLookStyleButton")) return NO;
-        if ([view isKindOfClass:[UIControl class]]) return NO;
-        if ([view isKindOfClass:[UILabel class]]) return NO;
-        if ([view isKindOfClass:[UIImageView class]]) return NO;
-        if ([view isKindOfClass:[UIScrollView class]]) return NO;
-        if (view.bounds.size.width < 120.0 || view.bounds.size.height < 120.0) return NO;
-        if (!LGWidgetContainerLooksLikeHomescreenWidgetHost(view)) return NO;
-        return YES;
-    }
-
     if ([className isEqualToString:@"UIView"] &&
-        view == LGWidgetAncestorContainerHostForView(view)) {
+        LGWidgetContainerLooksLikeHomescreenWidgetHost(view)) {
         return YES;
     }
 
@@ -351,7 +332,6 @@ static void LGInjectIntoWidgetGlassHostView(UIView *view) {
     }
 
     LGPrepareWidgetGlassHostView(view);
-
     if (!glass) {
         glass = [[LiquidGlassView alloc]
             initWithFrame:view.bounds wallpaper:wallpaper wallpaperOrigin:wallpaperOrigin];
@@ -573,8 +553,13 @@ static void LGWidgetsPrefsChanged(CFNotificationCenterRef center,
         LGDetachWidgetGlassHostView(host);
         return;
     }
-    ensureWidgetTintOverlay(host);
     LiquidGlassView *glass = objc_getAssociatedObject(host, kWidgetGlassKey);
+    if (!glass) {
+        LGInjectIntoWidgetGlassHostView(host);
+        glass = objc_getAssociatedObject(host, kWidgetGlassKey);
+        if (!glass) return;
+    }
+    ensureWidgetTintOverlay(host);
     [glass updateOrigin];
 }
 

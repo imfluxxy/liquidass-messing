@@ -1637,8 +1637,15 @@ static void LG_scheduleLockscreenWallpaperRefreshAttempt(NSString *reason,
                                                          NSTimeInterval delay,
                                                          BOOL allowRetry) {
     LGScheduleBlockAfterDelay(delay, ^{
-        if (!LG_globalEnabled()) return;
-        if (token != sPendingLockscreenWallpaperRefreshToken) return;
+        CFTimeInterval profileStart = LGProfileBegin();
+        if (!LG_globalEnabled()) {
+            LGProfileEnd(@"lockscreen.snapshot_refresh", profileStart);
+            return;
+        }
+        if (token != sPendingLockscreenWallpaperRefreshToken) {
+            LGProfileEnd(@"lockscreen.snapshot_refresh", profileStart);
+            return;
+        }
         LGDebugLog(@"lockscreen wallpaper refresh begin reason=%@ delay=%.2f",
                    reason ?: @"(unknown)",
                    delay);
@@ -1648,6 +1655,7 @@ static void LG_scheduleLockscreenWallpaperRefreshAttempt(NSString *reason,
         if (!pushed && allowRetry && token == sPendingLockscreenWallpaperRefreshToken) {
             LG_scheduleLockscreenWallpaperRefreshAttempt(reason, token, 0.85, NO);
         }
+        LGProfileEnd(@"lockscreen.snapshot_refresh", profileStart);
     });
 }
 

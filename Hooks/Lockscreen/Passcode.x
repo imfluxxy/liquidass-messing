@@ -464,9 +464,11 @@ static void LGResetPasscodeButton(UIView *button) {
 }
 
 static void LGInjectPasscodeButtonIfNeeded(UIView *button) {
+    CFTimeInterval profileStart = LGProfileBegin();
     UIView *host = LGPasscodeButtonBackgroundHost(button);
     if (!host) {
         LGDebugLog(@"passcode inject skipped no host button=%@", NSStringFromClass(button.class));
+        LGProfileEnd(@"passcode.inject", profileStart);
         return;
     }
 
@@ -475,6 +477,7 @@ static void LGInjectPasscodeButtonIfNeeded(UIView *button) {
                    button.window != nil,
                    LGPasscodeEnabled());
         LGResetPasscodeButton(button);
+        LGProfileEnd(@"passcode.inject", profileStart);
         return;
     }
 
@@ -561,6 +564,7 @@ static void LGInjectPasscodeButtonIfNeeded(UIView *button) {
                    glass.refractionScale);
     }
     LGAttachLockHostIfNeeded(host);
+    LGProfileEnd(@"passcode.inject", profileStart);
 }
 
 static void LGSetPasscodeButtonHighlighted(UIView *button, BOOL highlighted) {

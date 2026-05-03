@@ -202,12 +202,14 @@ static BOOL LGPlatterHostLooksLikeBannerContext(UIView *view) {
 #endif
 
 static void LGInjectBannerPlatterGlass(UIView *host) {
+    CFTimeInterval profileStart = LGProfileBegin();
     LGAssertMainThread();
     if (!LGBannerEnabled()) {
         LGDebugLog(@"banner inject bail reason=disabled host=%@",
                    host ? NSStringFromClass(host.class) : @"(null)");
         LGRemoveLiveBackdropCaptureView(host, kBannerBackdropViewKey);
         LGCleanupLockscreenHost(host);
+        LGProfileEnd(@"platter.inject", profileStart);
         return;
     }
 
@@ -228,7 +230,10 @@ static void LGInjectBannerPlatterGlass(UIView *host) {
                                                                LGBannerDefaultWallpaperScale,
                                                                LG_prefFloat(@"Banner.LightTintAlpha", LGBannerDefaultLightTintAlpha),
                                                                LG_prefFloat(@"Banner.DarkTintAlpha", LGBannerDefaultDarkTintAlpha));
-    if (!glass) return;
+    if (!glass) {
+        LGProfileEnd(@"platter.inject", profileStart);
+        return;
+    }
     CGPoint fallbackOrigin = CGPointZero;
     UIImage *fallbackSnapshot = LG_getHomescreenSnapshot(&fallbackOrigin);
     if (!LGApplyRenderingModeToGlassHost(host,
@@ -241,8 +246,10 @@ static void LGInjectBannerPlatterGlass(UIView *host) {
                    host ? NSStringFromClass(host.class) : @"(null)",
                    fallbackSnapshot ? 1 : 0);
         LGCleanupLockscreenHost(host);
+        LGProfileEnd(@"platter.inject", profileStart);
         return;
     }
+    LGProfileEnd(@"platter.inject", profileStart);
 }
 
 void LGRefreshBannerPlatterHosts(void) {
@@ -449,6 +456,7 @@ void LGLockscreenRefreshAllHosts(void) {
 - (void)didMoveToWindow {
     %orig;
     UIView *self_ = (UIView *)self;
+    CFTimeInterval profileStart = LGProfileBegin();
 
     if (!self_.window) {
 #if LG_DEBUG_VERBOSE
@@ -456,6 +464,7 @@ void LGLockscreenRefreshAllHosts(void) {
 #endif
         LGDetachBannerHostIfNeeded(self_);
         LGDetachLockHostIfNeeded(self_);
+        LGProfileEnd(@"platter.inject", profileStart);
         return;
     }
 
@@ -483,14 +492,20 @@ void LGLockscreenRefreshAllHosts(void) {
             LGCleanupLockscreenHost(self_);
         }
     } else {
+        LGProfileEnd(@"platter.inject", profileStart);
         return;
     }
+    LGProfileEnd(@"platter.inject", profileStart);
 }
 
 - (void)layoutSubviews {
     %orig;
     UIView *self_ = (UIView *)self;
-    if (!self_.window) return;
+    CFTimeInterval profileStart = LGProfileBegin();
+    if (!self_.window) {
+        LGProfileEnd(@"platter.inject", profileStart);
+        return;
+    }
 
     if (isPrimaryPlatterMaterialHost(self_)) {
 #if LG_DEBUG_VERBOSE
@@ -508,6 +523,7 @@ void LGLockscreenRefreshAllHosts(void) {
                 LGCleanupLockscreenHost(self_);
             }
         }
+        LGProfileEnd(@"platter.inject", profileStart);
         return;
     }
     if (isPrimaryActionButtonMaterialHost(self_)) {
@@ -518,6 +534,7 @@ void LGLockscreenRefreshAllHosts(void) {
             LGCleanupLockscreenHost(self_);
         }
     }
+    LGProfileEnd(@"platter.inject", profileStart);
 }
 
 %end

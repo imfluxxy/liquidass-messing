@@ -695,18 +695,33 @@ void LGPrewarmPipelines(void) {
 }
 
 - (void)drawInMTKView:(MTKView *)view {
+    CFTimeInterval profileStart = 0.0;
+    BOOL shouldProfile = (_updateGroup == LGUpdateGroupLockscreen);
+    if (shouldProfile) profileStart = LGProfileBegin();
     if (!_bgTexture && self.wallpaperImage) [self _reloadTexture];
     if (_bgTexture && !_blurredTexture) [self _ensureBlurTexture];
-    if (!sPipeline || !_bgTexture || !_blurredTexture) return;
+    if (!sPipeline || !_bgTexture || !_blurredTexture) {
+        if (shouldProfile) LGProfileEnd(@"lockscreen.draw", profileStart);
+        return;
+    }
     [self _refreshVisualMetrics];
     CGSize drawableSize = _cachedDrawableSizePx;
-    if (drawableSize.width < 1 || drawableSize.height < 1) return;
+    if (drawableSize.width < 1 || drawableSize.height < 1) {
+        if (shouldProfile) LGProfileEnd(@"lockscreen.draw", profileStart);
+        return;
+    }
     id<CAMetalDrawable> drawable = view.currentDrawable;
     MTLRenderPassDescriptor *passDesc = view.currentRenderPassDescriptor;
-    if (!drawable || !passDesc) return;
+    if (!drawable || !passDesc) {
+        if (shouldProfile) LGProfileEnd(@"lockscreen.draw", profileStart);
+        return;
+    }
     id<MTLCommandQueue> commandQueue = LGCommandQueueForUpdateGroup(_updateGroup);
     id<MTLCommandBuffer> cmdBuf = [commandQueue commandBuffer];
-    if (!cmdBuf) return;
+    if (!cmdBuf) {
+        if (shouldProfile) LGProfileEnd(@"lockscreen.draw", profileStart);
+        return;
+    }
 
     CGFloat scale = UIScreen.mainScreen.scale;
     CGFloat screenW = UIScreen.mainScreen.bounds.size.width * scale;
@@ -789,6 +804,7 @@ void LGPrewarmPipelines(void) {
     [enc endEncoding];
     [cmdBuf presentDrawable:drawable];
     [cmdBuf commit];
+    if (shouldProfile) LGProfileEnd(@"lockscreen.draw", profileStart);
 }
 
 - (void)dealloc {

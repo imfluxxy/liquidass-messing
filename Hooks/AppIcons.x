@@ -9,10 +9,33 @@ static const NSInteger kAppIconTintTag = 0xA110;
 static void *kAppIconRetryKey = &kAppIconRetryKey;
 static void *kAppIconGlassKey = &kAppIconGlassKey;
 static void *kAppIconTintKey = &kAppIconTintKey;
+static void *kAppIconOverlayHostKey = &kAppIconOverlayHostKey;
 static void *kAppIconOriginalTransformKey = &kAppIconOriginalTransformKey;
 static void *kAppIconLastGlassFrameKey = &kAppIconLastGlassFrameKey;
 static void *kAppIconBackdropViewKey = &kAppIconBackdropViewKey;
 static const CGFloat kAppIconImageScale = 0.99;
+
+static BOOL LGTouchPassThroughViewLooksLikePlainIconHost(UIView *touchPassView, UIView *iconImageView) {
+    if (!touchPassView || !iconImageView) return NO;
+    BOOL hasImageView = NO;
+    BOOL hasLabelView = NO;
+    for (UIView *subview in touchPassView.subviews) {
+        if (subview == iconImageView) {
+            hasImageView = YES;
+            continue;
+        }
+        if (subview == objc_getAssociatedObject(touchPassView, kAppIconGlassKey)) continue;
+        if (subview == objc_getAssociatedObject(touchPassView, kAppIconTintKey)) continue;
+
+        NSString *className = NSStringFromClass(subview.class);
+        if ([className isEqualToString:@"SBIconLegibilityLabelView"]) {
+            hasLabelView = YES;
+            continue;
+        }
+        return NO;
+    }
+    return hasImageView && hasLabelView;
+}
 
 LG_ENABLED_BOOL_PREF_FUNC(LGAppIconsEnabled, "AppIcons.Enabled", NO)
 LG_FLOAT_PREF_FUNC(LGAppIconCornerRadius, "AppIcons.CornerRadius", 13.5)
@@ -33,14 +56,14 @@ static BOOL LGIsHomescreenIconImageView(UIView *view) {
     UIView *parent = view.superview;
     if (!parent) return NO;
     if (![NSStringFromClass(parent.class) isEqualToString:@"SBFTouchPassThroughView"]) return NO;
-    if (LGResponderChainContainsClassNamed(parent, @"SBHWidgetStackViewController")) return NO;
     UIView *grandparent = parent.superview;
     if (!grandparent) return NO;
     if (![NSStringFromClass(grandparent.class) isEqualToString:@"SBIconView"]) return NO;
-    if (LGResponderChainContainsClassNamed(grandparent, @"SBHWidgetStackViewController")) return NO;
     UIView *iconListView = grandparent.superview;
     if (!iconListView) return NO;
     if (![NSStringFromClass(iconListView.class) isEqualToString:@"SBIconListView"]) return NO;
+    if (grandparent.subviews.count != 1 || grandparent.subviews.firstObject != parent) return NO;
+    if (!LGTouchPassThroughViewLooksLikePlainIconHost(parent, view)) return NO;
     BOOL hasMaterialSibling = NO;
     for (UIView *sibling in iconListView.subviews) {
         if (sibling == grandparent) continue;
@@ -49,13 +72,14 @@ static BOOL LGIsHomescreenIconImageView(UIView *view) {
             break;
         }
     }
-    if (!hasMaterialSibling) return NO;
-    return YES;
+    return hasMaterialSibling;
 }
 
 static UIView *LGAppIconHostView(UIView *view) {
-    UIView *host = view.superview;
-    return host ?: view;
+    UIView *host = objc_getAssociatedObject(view, kAppIconOverlayHostKey);
+    if (host) return host;
+    UIView *parent = view.superview;
+    return parent ?: view;
 }
 
 static CGRect LGAppIconGlassFrameInHost(UIView *iconView, UIView *host) {
@@ -82,6 +106,9 @@ static void removeAppIconOverlays(UIView *view) {
         view.transform = CGAffineTransformIdentity;
     }
     LGRemoveLiveBackdropCaptureView(host, kAppIconBackdropViewKey);
+    UIView *overlayHost = objc_getAssociatedObject(view, kAppIconOverlayHostKey);
+    if (overlayHost) [overlayHost removeFromSuperview];
+    objc_setAssociatedObject(view, kAppIconOverlayHostKey, nil, OBJC_ASSOCIATION_ASSIGN);
 }
 
 static void ensureAppIconTintOverlay(UIView *view) {
@@ -100,7 +127,7 @@ static void ensureAppIconTintOverlay(UIView *view) {
     if (@available(iOS 13.0, *)) {
         tint.layer.cornerCurve = kCACornerCurveContinuous;
     }
-    [host insertSubview:tint aboveSubview:objc_getAssociatedObject(host, kAppIconGlassKey)];
+    [host insertSubview:tint belowSubview:view];
 }
 
 static void injectIntoAppIcon(UIView *view) {
@@ -111,12 +138,29 @@ static void injectIntoAppIcon(UIView *view) {
         return;
     }
 
-    UIView *host = LGAppIconHostView(view);
-    CGRect frame = LGAppIconGlassFrameInHost(view, host);
-    if (CGRectIsEmpty(frame)) {
+    UIView *parentHost = view.superview ?: view;
+    CGRect frameInParent = LGAppIconGlassFrameInHost(view, parentHost);
+    if (CGRectIsEmpty(frameInParent)) {
         LGProfileEnd(@"app_icons.inject", profileStart);
         return;
     }
+    UIView *host = objc_getAssociatedObject(view, kAppIconOverlayHostKey);
+    if (!host) {
+        host = [[UIView alloc] initWithFrame:frameInParent];
+        host.userInteractionEnabled = NO;
+        host.backgroundColor = UIColor.clearColor;
+        host.clipsToBounds = NO;
+        [parentHost insertSubview:host belowSubview:view];
+        objc_setAssociatedObject(view, kAppIconOverlayHostKey, host, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    } else {
+        host.frame = frameInParent;
+        if (host.superview != parentHost) {
+            [host removeFromSuperview];
+            [parentHost insertSubview:host belowSubview:view];
+        }
+    }
+
+    CGRect frame = host.bounds;
 
     LiquidGlassView *glass = objc_getAssociatedObject(host, kAppIconGlassKey);
     CGPoint wallpaperOrigin = CGPointZero;
@@ -149,7 +193,6 @@ static void injectIntoAppIcon(UIView *view) {
         [host insertSubview:glass atIndex:0];
         objc_setAssociatedObject(host, kAppIconGlassKey, glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
-
     if (!objc_getAssociatedObject(view, kAppIconOriginalTransformKey)) {
         objc_setAssociatedObject(view, kAppIconOriginalTransformKey,
                                  [NSValue valueWithCGAffineTransform:view.transform],
@@ -196,14 +239,20 @@ static void injectIntoAppIcon(UIView *view) {
         removeAppIconOverlays(self_);
         return;
     }
-    if (!LGIsHomescreenIconImageView(self_)) return;
+    if (!LGIsHomescreenIconImageView(self_)) {
+        removeAppIconOverlays(self_);
+        return;
+    }
     injectIntoAppIcon(self_);
 }
 
 - (void)layoutSubviews {
     %orig;
     UIView *self_ = (UIView *)self;
-    if (!LGIsHomescreenIconImageView(self_)) return;
+    if (!LGIsHomescreenIconImageView(self_)) {
+        removeAppIconOverlays(self_);
+        return;
+    }
     if (!LGAppIconsEnabled()) {
         removeAppIconOverlays(self_);
         return;

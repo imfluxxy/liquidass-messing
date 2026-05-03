@@ -58,8 +58,10 @@ CGFloat LGLockscreenQuickActionsCornerRadius(UIView *view) {
 }
 
 static void LGLockscreenQuickActionsApplyIfNeeded(UIView *view) {
+    CFTimeInterval profileStart = LGProfileBegin();
     if (!view.window || !LGLockscreenQuickActionsEnabled() || !LGIsLockscreenQuickActionsHost(view)) {
         LGLockscreenQuickActionsResetHost(view);
+        LGProfileEnd(@"quick_actions.inject", profileStart);
         return;
     }
 
@@ -77,6 +79,7 @@ static void LGLockscreenQuickActionsApplyIfNeeded(UIView *view) {
                                                LGLockscreenQuickActionsLightTintAlpha(),
                                                LGLockscreenQuickActionsDarkTintAlpha());
     LGAttachLockHostIfNeeded(view);
+    LGProfileEnd(@"quick_actions.inject", profileStart);
 }
 
 %hook UIVisualEffectView
