@@ -39,7 +39,8 @@ static NSArray<NSString *> *LGExportablePreferenceKeys(void) {
         NSArray<NSArray<NSDictionary *> *> *sources = @[
             LGAllSurfaceItems(),
             LGMoreOptionsItems(),
-            LGExperimentalItems()
+            LGExperimentalItems(),
+            LGLiveCaptureItems()
         ];
         for (NSArray<NSDictionary *> *items in sources) {
             for (NSDictionary *item in items) {
@@ -259,6 +260,7 @@ BOOL LGPreferenceRequiresRespring(NSString *key) {
             @"AppLibrary.Enabled",
             @"AppLibrary.Search.Enabled",
             @"Widgets.Enabled",
+            @"ControlCenter.Enabled",
         ]];
     });
     return [respringKeys containsObject:key];
@@ -513,6 +515,7 @@ static NSArray<NSDictionary *> *LGPerSurfaceTintOverrideItems(void) {
         LGGlassTintOverrideSetting(@"AppIcons.TintOverrideMode", LGLocalized(@"prefs.section.app_icons.title")),
         LGGlassTintOverrideSetting(@"ContextMenu.TintOverrideMode", LGLocalized(@"prefs.section.context_menu.title")),
         LGGlassTintOverrideSetting(@"Banner.TintOverrideMode", LGLocalized(@"prefs.section.banner.title")),
+        LGGlassTintOverrideSetting(@"ControlCenter.TintOverrideMode", LGLocalized(@"prefs.section.control_center.title")),
         LGGlassTintOverrideSetting(@"SearchPill.TintOverrideMode", LGLocalized(@"prefs.section.search_pill.title")),
         LGGlassTintOverrideSetting(@"Widgets.TintOverrideMode", LGLocalized(@"prefs.section.widgets.title")),
         LGGlassTintOverrideSetting(@"Lockscreen.TintOverrideMode", LGLocalized(@"prefs.section.lockscreen_notifications.title")),
@@ -536,6 +539,7 @@ static NSArray<NSDictionary *> *LGPerSurfaceDisplayLinkItems(void) {
         LGDisplayLinkSurfaceSwitch(@"DisplayLink.FolderOpen.Enabled", LGLocalized(@"prefs.section.folder_open.title")),
         LGDisplayLinkSurfaceSwitch(@"DisplayLink.ContextMenu.Enabled", LGLocalized(@"prefs.section.context_menu.title")),
         LGDisplayLinkSurfaceSwitch(@"DisplayLink.Banner.Enabled", LGLocalized(@"prefs.section.banner.title")),
+        LGDisplayLinkSurfaceSwitch(@"DisplayLink.ControlCenter.Enabled", LGLocalized(@"prefs.section.control_center.title")),
         LGDisplayLinkSurfaceSwitch(@"DisplayLink.Widgets.Enabled", LGLocalized(@"prefs.section.widgets.title")),
         LGDisplayLinkSurfaceSwitch(@"DisplayLink.AppLibrary.Enabled", LGLocalized(@"prefs.surface.app_library.title")),
         LGDisplayLinkSurfaceSwitch(@"DisplayLink.Lockscreen.Enabled", LGLocalized(@"prefs.surface.lockscreen.title")),
@@ -1114,6 +1118,9 @@ NSArray<NSDictionary *> *LGAllSurfaceItems(void) {
 
 NSArray<NSDictionary *> *LGExperimentalItems(void) {
     return @[
+        LGSectionSetting(LGLocalized(@"prefs.section.control_center.title"),
+                         LGLocalized(@"prefs.section.control_center.subtitle")),
+        LGGlassEnabledSetting(@"ControlCenter.Enabled", YES),
         LGSectionSetting(LGLocalized(@"prefs.section.experimental_rendering.title"),
                          LGLocalized(@"prefs.section.experimental_rendering.subtitle")),
         LGMenuSetting(@"Dock.RenderingMode",
@@ -1158,6 +1165,14 @@ NSArray<NSDictionary *> *LGExperimentalItems(void) {
                       ]),
         LGMenuSetting(@"Banner.RenderingMode",
                       LGLocalized(@"prefs.section.banner.title"),
+                      @"",
+                      LGRenderingModeLiveCapture,
+                      @[
+                          @{@"value": LGRenderingModeSnapshot, @"title": LGLocalized(@"prefs.rendering.snapshot.title")},
+                          @{@"value": LGRenderingModeLiveCapture, @"title": LGLocalized(@"prefs.rendering.live_capture.title")}
+                      ]),
+        LGMenuSetting(@"ControlCenter.RenderingMode",
+                      LGLocalized(@"prefs.section.control_center.title"),
                       @"",
                       LGRenderingModeLiveCapture,
                       @[
@@ -1231,6 +1246,64 @@ NSArray<NSDictionary *> *LGExperimentalItems(void) {
     ];
 }
 
+static NSDictionary *LGLiveCaptureFPSSlider(NSString *key, NSString *title, CGFloat fallback) {
+    return LGSliderSetting(key,
+                           title ?: @"",
+                           LGLocalized(@"prefs.live_capture.fps.subtitle"),
+                           fallback,
+                           1.0,
+                           30.0,
+                           0);
+}
+
+NSArray<NSDictionary *> *LGLiveCaptureItems(void) {
+    return @[
+        LGSectionSetting(LGLocalized(@"prefs.section.live_capture_general.title"),
+                         LGLocalized(@"prefs.section.live_capture_general.subtitle")),
+        LGSliderSetting(@"LiveCapture.ScaleFactor",
+                        LGLocalized(@"prefs.live_capture.scale_factor.title"),
+                        LGLocalized(@"prefs.live_capture.scale_factor.subtitle"),
+                        0.35,
+                        0.10,
+                        1.00,
+                        2),
+        LGSliderSetting(@"LiveCapture.MinimumScale",
+                        LGLocalized(@"prefs.live_capture.minimum_scale.title"),
+                        LGLocalized(@"prefs.live_capture.minimum_scale.subtitle"),
+                        0.55,
+                        0.10,
+                        2.00,
+                        2),
+        LGSliderSetting(@"LiveCapture.MaximumScale",
+                        LGLocalized(@"prefs.live_capture.maximum_scale.title"),
+                        LGLocalized(@"prefs.live_capture.maximum_scale.subtitle"),
+                        1.00,
+                        0.10,
+                        3.00,
+                        2),
+        LGSliderSetting(@"LiveCapture.MaximumPixels",
+                        LGLocalized(@"prefs.live_capture.maximum_pixels.title"),
+                        LGLocalized(@"prefs.live_capture.maximum_pixels.subtitle"),
+                        180000.0,
+                        20000.0,
+                        600000.0,
+                        0),
+        LGSectionSetting(LGLocalized(@"prefs.section.live_capture_fps.title"),
+                         LGLocalized(@"prefs.section.live_capture_fps.subtitle")),
+        LGLiveCaptureFPSSlider(@"Dock.LiveCaptureFPS", LGLocalized(@"prefs.section.dock.title"), 12.0),
+        LGLiveCaptureFPSSlider(@"FolderOpen.LiveCaptureFPS", LGLocalized(@"prefs.section.folder_open.title"), 12.0),
+        LGLiveCaptureFPSSlider(@"ContextMenu.LiveCaptureFPS", LGLocalized(@"prefs.section.context_menu.title"), 15.0),
+        LGLiveCaptureFPSSlider(@"Banner.LiveCaptureFPS", LGLocalized(@"prefs.section.banner.title"), 15.0),
+        LGLiveCaptureFPSSlider(@"Widgets.LiveCaptureFPS", LGLocalized(@"prefs.section.widgets.title"), 8.0),
+        LGLiveCaptureFPSSlider(@"AppLibrary.LiveCaptureFPS", LGLocalized(@"prefs.surface.app_library.title"), 12.0),
+        LGLiveCaptureFPSSlider(@"Lockscreen.LiveCaptureFPS", LGLocalized(@"prefs.surface.lockscreen.title"), 10.0),
+        LGLiveCaptureFPSSlider(@"ControlCenter.LiveCaptureFPS", LGLocalized(@"prefs.section.control_center.title"), 12.0),
+        LGLiveCaptureFPSSlider(@"ControlCenter.FullscreenBlurCapFPS",
+                               LGLocalized(@"prefs.live_capture.control_center_blur_cap.title"),
+                               15.0),
+    ];
+}
+
 NSArray<NSDictionary *> *LGMoreOptionsItems(void) {
     NSMutableArray<NSDictionary *> *items = [NSMutableArray arrayWithArray:@[
         LGMenuSetting(kLGPrefsLanguageKey,
@@ -1278,6 +1351,9 @@ NSArray<NSDictionary *> *LGMoreOptionsItems(void) {
                                      LGLocalized(@"prefs.misc.app_library_composite.title"),
                                      LGLocalized(@"prefs.misc.app_library_composite.subtitle"),
                                      NO)];
+    [items addObject:LGNavSetting(LGLocalized(@"prefs.misc.live_capture.title"),
+                                  LGLocalized(@"prefs.misc.live_capture.subtitle"),
+                                  @"openLiveCaptureConfiguration")];
     [items addObject:LGSettingControlledByKey(
                          LGSwitchSetting(@"SettingsControls.Enabled",
                                          LGLocalized(@"prefs.misc.settings_controls.title"),

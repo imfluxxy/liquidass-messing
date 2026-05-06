@@ -168,10 +168,17 @@ static void ensureFolderOpenTintOverlay(UIView *view) {
 
 static void startFolderDisplayLink(void) {
     sFolderStopGeneration++;
+    NSInteger fps = LG_prefersLiveCapture(@"FolderOpen.RenderingMode")
+        ? LGPreferredLiveCaptureFramesPerSecond(LGFolderOpenLiveCaptureFPS())
+        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
     LGStartDisplayLinkStateWithPreferenceKey(&sFolderDisplayLinkState,
-                                             LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30),
+                                             fps,
                                              @"DisplayLink.FolderOpen.Enabled",
                                              ^{
+        NSInteger nextFPS = LG_prefersLiveCapture(@"FolderOpen.RenderingMode")
+            ? LGPreferredLiveCaptureFramesPerSecond(LGFolderOpenLiveCaptureFPS())
+            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+        LGSetDisplayLinkStatePreferredFPS(&sFolderDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"FolderOpen.RenderingMode")) {
             for (UIView *host in LGFolderOpenHostRegistry().allObjects) {
                 LGHandleFolderOpenMaterialView(host, NO);

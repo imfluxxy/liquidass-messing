@@ -42,6 +42,25 @@ void LGLog(NSString *format, ...);
 
 @end
 
+static CGFloat LGLiveCaptureScaleForRect(CGRect captureRect, CGFloat screenScale) {
+    CGFloat configuredScale = LG_prefFloat(@"LiveCapture.ScaleFactor", 0.35);
+    CGFloat minimumScale = LG_prefFloat(@"LiveCapture.MinimumScale", 0.55);
+    CGFloat maximumScale = LG_prefFloat(@"LiveCapture.MaximumScale", 1.0);
+    CGFloat maximumPixels = LG_prefFloat(@"LiveCapture.MaximumPixels", 180000.0);
+
+    CGFloat captureScale = screenScale * MAX(0.1, configuredScale);
+    captureScale = MIN(MAX(captureScale, MAX(0.1, minimumScale)), MAX(0.1, maximumScale));
+
+    CGFloat width = CGRectGetWidth(captureRect);
+    CGFloat height = CGRectGetHeight(captureRect);
+    CGFloat estimatedPixels = width * height * captureScale * captureScale;
+    if (maximumPixels > 1000.0 && estimatedPixels > maximumPixels) {
+        captureScale *= sqrt(maximumPixels / estimatedPixels);
+        captureScale = MAX(0.1, captureScale);
+    }
+    return captureScale;
+}
+
 void LGRemoveLiveBackdropCaptureView(UIView *host, const void *associationKey) {
     LGAssertMainThread();
     if (!host || !associationKey) return;
@@ -122,7 +141,7 @@ BOOL LGCaptureLiveBackdropTextureForHost(UIView *host,
     }
 
     CGFloat screenScale = host.window.screen.scale ?: UIScreen.mainScreen.scale ?: 2.0f;
-    CGFloat captureScale = MAX(0.7f, screenScale * 0.5f);
+    CGFloat captureScale = LGLiveCaptureScaleForRect(captureRect, screenScale);
     size_t pixelWidth = MAX((size_t)1, (size_t)lrint(CGRectGetWidth(captureRect) * captureScale));
     size_t pixelHeight = MAX((size_t)1, (size_t)lrint(CGRectGetHeight(captureRect) * captureScale));
 

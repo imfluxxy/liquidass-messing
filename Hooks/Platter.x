@@ -56,10 +56,17 @@ static BOOL LGHasBannerPresentationContext(UIView *view) {
 static void LGStartBannerDisplayLink(void) {
     LGAssertMainThread();
     if (sBannerDisplayLinkState.link || !LGBannerEnabled()) return;
+    NSInteger fps = LG_prefersLiveCapture(@"Banner.RenderingMode")
+        ? LGPreferredLiveCaptureFramesPerSecond(LGBannerLiveCaptureFPS())
+        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
     LGStartDisplayLinkStateWithPreferenceKey(&sBannerDisplayLinkState,
-                                             LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30),
+                                             fps,
                                              @"DisplayLink.Banner.Enabled",
                                              ^{
+        NSInteger nextFPS = LG_prefersLiveCapture(@"Banner.RenderingMode")
+            ? LGPreferredLiveCaptureFramesPerSecond(LGBannerLiveCaptureFPS())
+            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+        LGSetDisplayLinkStatePreferredFPS(&sBannerDisplayLinkState, nextFPS);
         LGRefreshBannerPlatterHosts();
     });
 }

@@ -14,6 +14,7 @@ typedef NS_ENUM(NSInteger, LGUpdateGroup) {
     LGUpdateGroupAppLibrary,
     LGUpdateGroupAppIcons,
     LGUpdateGroupWidgets,
+    LGUpdateGroupControlCenter,
 };
 
 UIView  *LG_findSubviewOfClass(UIView *root, Class cls);

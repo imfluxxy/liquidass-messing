@@ -352,7 +352,8 @@ void LGCacheDynamicDefaultFloat(NSString *key, CGFloat value) {
 }
 
 NSString *LGDefaultRenderingModeForKey(NSString *key) {
-    if ([key isEqualToString:@"Banner.RenderingMode"]) {
+    if ([key isEqualToString:@"Banner.RenderingMode"] ||
+        [key isEqualToString:@"ControlCenter.RenderingMode"]) {
         return LGRenderingModeLiveCapture;
     }
     return LGRenderingModeSnapshot;

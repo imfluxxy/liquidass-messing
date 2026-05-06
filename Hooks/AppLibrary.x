@@ -10,6 +10,7 @@ static void stopAppLibDisplayLink(void);
 static void LGAppLibraryRefreshAllHosts(void);
 static void LGAppLibraryRefreshAttachedHosts(void);
 static void LGRemoveAppLibraryGlass(UIView *view);
+static void LGAppLibrarySyncDisplayLinkActivity(void);
 static BOOL isInsideSearchTextField(UIView *view);
 static UIView *LGAppLibraryPodHostView(UIView *view);
 static void LGAppLibraryPreparePodChildren(UIView *host);
@@ -173,11 +174,21 @@ static void LGScheduleFocusResanitize(UIView *view) {
 
 static void startAppLibDisplayLink(void) {
     if (!LGAnyAppLibraryGlassEnabled()) return;
-    sAppLibraryDisplayLinkState.activeCount = 1;
+    BOOL live = LG_prefersLiveCapture(@"AppLibrary.RenderingMode") ||
+                LG_prefersLiveCapture(@"AppLibrary.Search.RenderingMode");
+    NSInteger fps = live
+        ? LGPreferredLiveCaptureFramesPerSecond(LGAppLibraryLiveCaptureFPS())
+        : LGPreferredFramesPerSecondForKey(@"AppLibrary.FPS", 30);
     LGStartDisplayLinkStateWithPreferenceKey(&sAppLibraryDisplayLinkState,
-                                             LGPreferredFramesPerSecondForKey(@"AppLibrary.FPS", 30),
+                                             fps,
                                              @"DisplayLink.AppLibrary.Enabled",
                                              ^{
+        BOOL nextLive = LG_prefersLiveCapture(@"AppLibrary.RenderingMode") ||
+                        LG_prefersLiveCapture(@"AppLibrary.Search.RenderingMode");
+        NSInteger nextFPS = nextLive
+            ? LGPreferredLiveCaptureFramesPerSecond(LGAppLibraryLiveCaptureFPS())
+            : LGPreferredFramesPerSecondForKey(@"AppLibrary.FPS", 30);
+        LGSetDisplayLinkStatePreferredFPS(&sAppLibraryDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"AppLibrary.RenderingMode") ||
             LG_prefersLiveCapture(@"AppLibrary.Search.RenderingMode")) {
             LGAppLibraryRefreshAttachedHosts();
@@ -185,7 +196,6 @@ static void startAppLibDisplayLink(void) {
             LG_updateRegisteredGlassViews(LGUpdateGroupAppLibrary);
         }
     });
-    LGDisplayLinkStateDidChangeActivity(&sAppLibraryDisplayLinkState);
 }
 static void stopAppLibDisplayLink(void) {
     sAppLibraryDisplayLinkState.activeCount = 0;
@@ -193,9 +203,34 @@ static void stopAppLibDisplayLink(void) {
     LGStopDisplayLinkState(&sAppLibraryDisplayLinkState);
 }
 
+static NSUInteger LGAppLibraryActiveHostCount(void) {
+    NSUInteger count = 0;
+    for (UIView *view in LGAppLibraryHostRegistry().allObjects) {
+        if (!view.window || view.hidden || view.alpha <= 0.01f || view.layer.opacity <= 0.01f) continue;
+        count++;
+    }
+    return count;
+}
+
+static void LGAppLibrarySyncDisplayLinkActivity(void) {
+    if (!LGAnyAppLibraryGlassEnabled()) {
+        stopAppLibDisplayLink();
+        return;
+    }
+
+    NSUInteger activeCount = LGAppLibraryActiveHostCount();
+    if (activeCount == 0) {
+        stopAppLibDisplayLink();
+        return;
+    }
+
+    sAppLibraryDisplayLinkState.activeCount = activeCount;
+    startAppLibDisplayLink();
+    LGDisplayLinkStateDidChangeActivity(&sAppLibraryDisplayLinkState);
+}
+
 static void LGSyncAppLibraryDisplayLink(void) {
-    if (LGAnyAppLibraryGlassEnabled()) startAppLibDisplayLink();
-    else stopAppLibDisplayLink();
+    LGAppLibrarySyncDisplayLinkActivity();
 }
 
 static void LGAppLibraryRememberOriginalState(UIView *view) {
@@ -235,6 +270,7 @@ static void LGRemoveAppLibraryGlass(UIView *view) {
     objc_setAssociatedObject(view, kAppLibGlassKey, nil, OBJC_ASSOCIATION_ASSIGN);
     LGRemoveLiveBackdropCaptureView(view, kAppLibBackdropViewKey);
     LGRemoveLiveBackdropCaptureView(view, kAppLibSearchBackdropViewKey);
+    LGAppLibrarySyncDisplayLinkActivity();
 }
 
 static UIColor *LGAppLibraryTintColorForView(UIView *view, CGFloat lightAlpha, CGFloat darkAlpha) {
@@ -355,7 +391,6 @@ static void injectIntoAppLibrary(UIView *self_) {
         LGRemoveAppLibraryGlass(host);
         return;
     }
-    startAppLibDisplayLink();
 
     LGAppLibraryPrepareHost(host, LGAppLibCornerRadius());
 
@@ -382,6 +417,7 @@ static void injectIntoAppLibrary(UIView *self_) {
                                                                    LGAppLibLightTintAlpha(),
                                                                    LGAppLibDarkTintAlpha()));
         [LGAppLibraryHostRegistry() addObject:host];
+        LGAppLibrarySyncDisplayLinkActivity();
         [glass updateOrigin];
         return;
     }
@@ -424,6 +460,7 @@ static void injectIntoAppLibrary(UIView *self_) {
                                                                LGAppLibDarkTintAlpha()));
     objc_setAssociatedObject(host, kAppLibRetryKey, nil, OBJC_ASSOCIATION_ASSIGN);
     [LGAppLibraryHostRegistry() addObject:host];
+    LGAppLibrarySyncDisplayLinkActivity();
     if (!LGApplyRenderingModeToGlassHost(host,
                                          glass,
                                          @"AppLibrary.RenderingMode",
@@ -446,7 +483,6 @@ static void injectIntoSearchBar(UIView *self_) {
         LGAppLibraryRestoreOriginalState(self_);
         return;
     }
-    startAppLibDisplayLink();
 
     CGFloat searchCornerRadius = LGResolvedAppLibSearchCornerRadius(self_);
     LGAppLibraryPrepareHost(self_, searchCornerRadius);
@@ -473,6 +509,7 @@ static void injectIntoSearchBar(UIView *self_) {
                                                                    LGAppLibSearchLightTintAlpha(),
                                                                    LGAppLibSearchDarkTintAlpha()));
         [LGAppLibraryHostRegistry() addObject:self_];
+        LGAppLibrarySyncDisplayLinkActivity();
         [glass updateOrigin];
         return;
     }
@@ -514,6 +551,7 @@ static void injectIntoSearchBar(UIView *self_) {
                                                                LGAppLibSearchDarkTintAlpha()));
     objc_setAssociatedObject(self_, kAppLibRetryKey, nil, OBJC_ASSOCIATION_ASSIGN);
     [LGAppLibraryHostRegistry() addObject:self_];
+    LGAppLibrarySyncDisplayLinkActivity();
     if (!LGApplyRenderingModeToGlassHost(self_,
                                          glass,
                                          @"AppLibrary.Search.RenderingMode",
@@ -572,6 +610,7 @@ static void LGAppLibraryRefreshAttachedHosts(void) {
             injectIntoAppLibrary(podView ?: view);
         }
     }
+    LGAppLibrarySyncDisplayLinkActivity();
 }
 
 static void LGAppLibraryPrefsChanged(CFNotificationCenterRef center,

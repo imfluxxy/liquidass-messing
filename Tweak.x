@@ -71,12 +71,12 @@ void LG_updateAllGlassViewsInTree(UIView *root) {
     LG_updateAllGlassViewsInTreeImpl(root, 0);
 }
 
-static NSHashTable *sRegisteredGlassViews[LGUpdateGroupWidgets + 1] = { nil };
+static NSHashTable *sRegisteredGlassViews[LGUpdateGroupControlCenter + 1] = { nil };
 
 void LG_registerGlassView(UIView *view, LGUpdateGroup group) {
     LGAssertMainThread();
     if (!view) return;
-    if (group <= LGUpdateGroupAll || group > LGUpdateGroupWidgets) return;
+    if (group <= LGUpdateGroupAll || group > LGUpdateGroupControlCenter) return;
     if (!sRegisteredGlassViews[group])
         sRegisteredGlassViews[group] = [NSHashTable weakObjectsHashTable];
     [sRegisteredGlassViews[group] addObject:view];
@@ -84,7 +84,7 @@ void LG_registerGlassView(UIView *view, LGUpdateGroup group) {
 
 void LG_unregisterGlassView(UIView *view, LGUpdateGroup group) {
     LGAssertMainThread();
-    if (group <= LGUpdateGroupAll || group > LGUpdateGroupWidgets) return;
+    if (group <= LGUpdateGroupAll || group > LGUpdateGroupControlCenter) return;
     [sRegisteredGlassViews[group] removeObject:view];
 }
 
@@ -107,11 +107,11 @@ static void LG_updateGlassHashTable(NSHashTable *table) {
 void LG_updateRegisteredGlassViews(LGUpdateGroup group) {
     LGAssertMainThread();
     if (group == LGUpdateGroupAll) {
-        for (NSInteger i = LGUpdateGroupDock; i <= LGUpdateGroupWidgets; i++)
+        for (NSInteger i = LGUpdateGroupDock; i <= LGUpdateGroupControlCenter; i++)
             LG_updateGlassHashTable(sRegisteredGlassViews[i]);
         return;
     }
-    if (group <= LGUpdateGroupAll || group > LGUpdateGroupWidgets) return;
+    if (group <= LGUpdateGroupAll || group > LGUpdateGroupControlCenter) return;
     LG_updateGlassHashTable(sRegisteredGlassViews[group]);
 }
 

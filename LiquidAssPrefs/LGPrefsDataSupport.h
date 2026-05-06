@@ -73,6 +73,7 @@ NSArray<NSDictionary *> *LGWidgetItems(void);
 NSArray<NSDictionary *> *LGHomescreenItems(void);
 NSArray<NSDictionary *> *LGAllSurfaceItems(void);
 NSArray<NSDictionary *> *LGExperimentalItems(void);
+NSArray<NSDictionary *> *LGLiveCaptureItems(void);
 NSArray<NSDictionary *> *LGMoreOptionsItems(void);
 
 NSString *LGExportPreferencesJSONString(void);

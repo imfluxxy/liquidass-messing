@@ -151,6 +151,11 @@ static BOOL LGItemVisibleForCurrentPreferences(NSDictionary *item) {
         _screenSubtitle = [LGLocalized(@"prefs.misc.experimental.subtitle") copy];
         _accentColor = [UIColor systemOrangeColor];
         _items = [LGExperimentalItems() copy];
+    } else if ([_screenIdentifier isEqualToString:@"LiveCapture"]) {
+        _screenTitle = [LGLocalized(@"prefs.misc.live_capture.title") copy];
+        _screenSubtitle = [LGLocalized(@"prefs.misc.live_capture.subtitle") copy];
+        _accentColor = [UIColor systemTealColor];
+        _items = [LGLiveCaptureItems() copy];
     }
     self.title = _screenTitle;
 }
@@ -287,6 +292,15 @@ static BOOL LGItemVisibleForCurrentPreferences(NSDictionary *item) {
                                                                          tintColor:[UIColor systemOrangeColor]
                                                                         identifier:@"Experimental"
                                                                              items:LGExperimentalItems()];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)openLiveCaptureConfiguration {
+    LGPSurfaceController *controller = [[LGPSurfaceController alloc] initWithTitle:LGLocalized(@"prefs.misc.live_capture.title")
+                                                                          subtitle:LGLocalized(@"prefs.misc.live_capture.subtitle")
+                                                                         tintColor:[UIColor systemTealColor]
+                                                                        identifier:@"LiveCapture"
+                                                                             items:LGLiveCaptureItems()];
     [self.navigationController pushViewController:controller animated:YES];
 }
 

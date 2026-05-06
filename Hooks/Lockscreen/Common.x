@@ -91,10 +91,21 @@ static void LGEnsureLockscreenTintOverlay(UIView *host,
 
 static void LGStartLockDisplayLink(void) {
     if (!LGLockscreenEnabled() && !LGLockscreenQuickActionsFeatureEnabled()) return;
+    BOOL live = LG_prefersLiveCapture(@"Lockscreen.RenderingMode") ||
+                LG_prefersLiveCapture(@"LockscreenQuickActions.RenderingMode");
+    NSInteger fps = live
+        ? LGPreferredLiveCaptureFramesPerSecond(LGLockscreenLiveCaptureFPS())
+        : LGPreferredFramesPerSecondForKey(@"Lockscreen.FPS", 30);
     LGStartDisplayLinkStateWithPreferenceKey(&sLockDisplayLinkState,
-                                             LGPreferredFramesPerSecondForKey(@"Lockscreen.FPS", 30),
+                                             fps,
                                              @"DisplayLink.Lockscreen.Enabled",
                                              ^{
+        BOOL nextLive = LG_prefersLiveCapture(@"Lockscreen.RenderingMode") ||
+                        LG_prefersLiveCapture(@"LockscreenQuickActions.RenderingMode");
+        NSInteger nextFPS = nextLive
+            ? LGPreferredLiveCaptureFramesPerSecond(LGLockscreenLiveCaptureFPS())
+            : LGPreferredFramesPerSecondForKey(@"Lockscreen.FPS", 30);
+        LGSetDisplayLinkStatePreferredFPS(&sLockDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"Lockscreen.RenderingMode") ||
             LG_prefersLiveCapture(@"LockscreenQuickActions.RenderingMode")) {
             LGLockscreenRefreshAttachedHosts();

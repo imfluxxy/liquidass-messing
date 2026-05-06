@@ -108,10 +108,17 @@ static BOOL LGWidgetHasAncestorClassNamedWithinDepth(UIView *view, NSString *cla
 }
 
 static void LGStartWidgetDisplayLink(void) {
+    NSInteger fps = LG_prefersLiveCapture(@"Widgets.RenderingMode")
+        ? LGPreferredLiveCaptureFramesPerSecond(LGWidgetLiveCaptureFPS())
+        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
     LGStartDisplayLinkStateWithPreferenceKey(&sWidgetDisplayLinkState,
-                                             LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30),
+                                             fps,
                                              @"DisplayLink.Widgets.Enabled",
                                              ^{
+        NSInteger nextFPS = LG_prefersLiveCapture(@"Widgets.RenderingMode")
+            ? LGPreferredLiveCaptureFramesPerSecond(LGWidgetLiveCaptureFPS())
+            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+        LGSetDisplayLinkStatePreferredFPS(&sWidgetDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"Widgets.RenderingMode")) LGWidgetsRefreshAttachedHosts();
         else LG_updateRegisteredGlassViews(LGUpdateGroupWidgets);
     });
@@ -631,6 +638,10 @@ static void LGWidgetsPrefsChanged(CFNotificationCenterRef center,
     %orig;
     UIView *host = LGWidgetAncestorContainerHostForView((UIView *)self);
     if (!host) return;
+    if (!((UIView *)self).window) {
+        LGDetachWidgetGlassHostView(host);
+        return;
+    }
 
     if (!LGWidgetEnabled()) {
         LGDetachWidgetGlassHostView(host);

@@ -9,6 +9,7 @@ void LGTraverseViews(UIView *root, void (^block)(UIView *view));
 UIColor *LGDefaultTintColorForView(UIView *view, CGFloat lightAlpha, CGFloat darkAlpha);
 UIColor *LGDefaultTintColorForViewWithOverrideKey(UIView *view, CGFloat lightAlpha, CGFloat darkAlpha, NSString *overrideKey);
 NSInteger LGPreferredFramesPerSecondForKey(NSString *key, NSInteger minFPS);
+NSInteger LGPreferredLiveCaptureFramesPerSecond(CGFloat framesPerSecond);
 typedef struct {
     NSInteger activeCount;
     NSInteger preferredFPS;

@@ -88,6 +88,14 @@ NSInteger LGPreferredFramesPerSecondForKey(NSString *key, NSInteger minFPS) {
     return fps;
 }
 
+NSInteger LGPreferredLiveCaptureFramesPerSecond(CGFloat framesPerSecond) {
+    NSInteger maxFPS = UIScreen.mainScreen.maximumFramesPerSecond > 0
+        ? UIScreen.mainScreen.maximumFramesPerSecond
+        : 60;
+    NSInteger fps = (NSInteger)ceil(MAX(1.0, framesPerSecond));
+    return MIN(MAX(fps, 1), maxFPS);
+}
+
 UIView *LGEnsureTintOverlayView(UIView *host,
                                 const void *associationKey,
                                 NSInteger tag,
