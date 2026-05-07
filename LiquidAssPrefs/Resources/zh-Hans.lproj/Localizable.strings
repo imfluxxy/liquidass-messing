@@ -43,8 +43,8 @@
 "prefs.subtitle.refraction" = "背景在玻璃视图中的弯曲效果";
 "prefs.subtitle.specular" = "玻璃视图上的高光强度";
 "prefs.subtitle.quality" = "玻璃视图的纹理缩放较低的值可提升性能，但会降低视觉质量";
-"prefs.subtitle.fps_limit_120" = "将实时玻璃渲染限制在 30 到 120 FPS 之间较低的值可提升性能和电池续航";
-"prefs.subtitle.fps_limit_60" = "将实时玻璃渲染限制在 30 到 60 FPS 之间较低的值可提升性能";
+"prefs.subtitle.fps_limit_120" = "将实时玻璃渲染限制在 1 到 120 FPS 之间较低的值可提升性能和电池续航";
+"prefs.subtitle.fps_limit_60" = "将实时玻璃渲染限制在 1 到 60 FPS 之间较低的值可提升性能";
 "prefs.subtitle.floating_radius" = "悬浮模式下玻璃视图的圆角程度";
 "prefs.subtitle.full_screen_radius" = "全屏模式下玻璃视图的圆角程度";
 "prefs.subtitle.home_button_radius" = "带 Home 按钮设备上玻璃视图的圆角程度";

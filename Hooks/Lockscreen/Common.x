@@ -95,7 +95,7 @@ static void LGStartLockDisplayLink(void) {
                 LG_prefersLiveCapture(@"LockscreenQuickActions.RenderingMode");
     NSInteger fps = live
         ? LGPreferredLiveCaptureFramesPerSecond(LGLockscreenLiveCaptureFPS())
-        : LGPreferredFramesPerSecondForKey(@"Lockscreen.FPS", 30);
+        : LGPreferredFramesPerSecondForKey(@"Lockscreen.FPS", 1);
     LGStartDisplayLinkStateWithPreferenceKey(&sLockDisplayLinkState,
                                              fps,
                                              @"DisplayLink.Lockscreen.Enabled",
@@ -104,7 +104,7 @@ static void LGStartLockDisplayLink(void) {
                         LG_prefersLiveCapture(@"LockscreenQuickActions.RenderingMode");
         NSInteger nextFPS = nextLive
             ? LGPreferredLiveCaptureFramesPerSecond(LGLockscreenLiveCaptureFPS())
-            : LGPreferredFramesPerSecondForKey(@"Lockscreen.FPS", 30);
+            : LGPreferredFramesPerSecondForKey(@"Lockscreen.FPS", 1);
         LGSetDisplayLinkStatePreferredFPS(&sLockDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"Lockscreen.RenderingMode") ||
             LG_prefersLiveCapture(@"LockscreenQuickActions.RenderingMode")) {

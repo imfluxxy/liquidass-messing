@@ -134,6 +134,27 @@ static BOOL LGIsControlCenterModuleContainer(UIView *view) {
     return [NSStringFromClass(view.class) isEqualToString:@"CCUIContentModuleContentContainerView"];
 }
 
+static BOOL LGControlCenterViewHierarchyIsVisible(UIView *view) {
+    if (!view || !view.window) return NO;
+    UIWindow *window = view.window;
+    if (window.hidden || window.alpha <= 0.01f || window.layer.opacity <= 0.01f) return NO;
+    UIView *current = view;
+    while (current && current != window) {
+        if (current.hidden || current.alpha <= 0.01f || current.layer.opacity <= 0.01f) return NO;
+        current = current.superview;
+    }
+    return YES;
+}
+
+static BOOL LGControlCenterHostIsVisible(UIView *host) {
+    if (!LGIsControlCenterModuleContainer(host) || !LGControlCenterViewHierarchyIsVisible(host)) return NO;
+    CALayer *layer = host.layer.presentationLayer ?: host.layer;
+    CGRect bounds = layer.bounds;
+    if (CGRectGetWidth(bounds) <= 1.0 || CGRectGetHeight(bounds) <= 1.0) return NO;
+    CGRect windowFrame = [layer convertRect:bounds toLayer:host.window.layer];
+    return CGRectIntersectsRect(CGRectInset(host.window.bounds, -8.0, -8.0), windowFrame);
+}
+
 static BOOL LGControlCenterHasAncestorClassNamed(UIView *view, NSString *className) {
     UIView *ancestor = view.superview;
     while (ancestor) {
@@ -476,16 +497,12 @@ static void LGControlCenterDetachHost(UIView *host) {
     LGControlCenterRestoreOriginalState(host);
     if ([objc_getAssociatedObject(host, kControlCenterAttachedKey) boolValue]) {
         objc_setAssociatedObject(host, kControlCenterAttachedKey, nil, OBJC_ASSOCIATION_ASSIGN);
-        sControlCenterDisplayLinkState.activeCount = MAX(0, sControlCenterDisplayLinkState.activeCount - 1);
-        LGDisplayLinkStateDidChangeActivity(&sControlCenterDisplayLinkState);
-        if (sControlCenterDisplayLinkState.activeCount == 0) {
-            LGStopDisplayLinkState(&sControlCenterDisplayLinkState);
-        }
     }
 }
 
 static void LGControlCenterStartDisplayLink(void);
 static void LGControlCenterInjectHost(UIView *host);
+static void LGControlCenterSyncDisplayLinkActivity(void);
 
 static void LGControlCenterRefreshAttachedHosts(void) {
     for (UIView *host in LGControlCenterHostRegistry().allObjects) {
@@ -495,19 +512,20 @@ static void LGControlCenterRefreshAttachedHosts(void) {
         }
         LGControlCenterInjectHost(host);
     }
+    LGControlCenterSyncDisplayLinkActivity();
 }
 
 static void LGControlCenterStartDisplayLink(void) {
     NSInteger fps = LG_prefersLiveCapture(@"ControlCenter.RenderingMode")
         ? LGPreferredLiveCaptureFramesPerSecond(LGControlCenterLiveCaptureFPS())
-        : LGPreferredFramesPerSecondForKey(@"ControlCenter.FPS", 30);
+        : LGPreferredFramesPerSecondForKey(@"ControlCenter.FPS", 1);
     LGStartDisplayLinkStateWithPreferenceKey(&sControlCenterDisplayLinkState,
                                              fps,
                                              @"DisplayLink.ControlCenter.Enabled",
                                              ^{
         NSInteger nextFPS = LG_prefersLiveCapture(@"ControlCenter.RenderingMode")
             ? LGPreferredLiveCaptureFramesPerSecond(LGControlCenterLiveCaptureFPS())
-            : LGPreferredFramesPerSecondForKey(@"ControlCenter.FPS", 30);
+            : LGPreferredFramesPerSecondForKey(@"ControlCenter.FPS", 1);
         LGSetDisplayLinkStatePreferredFPS(&sControlCenterDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"ControlCenter.RenderingMode")) LGControlCenterRefreshAttachedHosts();
         else LG_updateRegisteredGlassViews(LGUpdateGroupControlCenter);
@@ -516,17 +534,39 @@ static void LGControlCenterStartDisplayLink(void) {
 
 static void LGControlCenterAttachHostIfNeeded(UIView *host) {
     [LGControlCenterHostRegistry() addObject:host];
-    if ([objc_getAssociatedObject(host, kControlCenterAttachedKey) boolValue]) return;
+    if ([objc_getAssociatedObject(host, kControlCenterAttachedKey) boolValue]) {
+        LGControlCenterSyncDisplayLinkActivity();
+        return;
+    }
     objc_setAssociatedObject(host, kControlCenterAttachedKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    sControlCenterDisplayLinkState.activeCount++;
+    LGControlCenterSyncDisplayLinkActivity();
+}
+
+static void LGControlCenterSyncDisplayLinkActivity(void) {
+    NSInteger visibleHostCount = 0;
+    for (UIView *host in LGControlCenterHostRegistry().allObjects) {
+        if (!LGControlCenterHostIsVisible(host)) continue;
+        visibleHostCount++;
+    }
+    sControlCenterDisplayLinkState.activeCount = visibleHostCount;
     LGDisplayLinkStateDidChangeActivity(&sControlCenterDisplayLinkState);
-    LGControlCenterStartDisplayLink();
+    if (visibleHostCount > 0) {
+        LGControlCenterStartDisplayLink();
+    } else {
+        LGStopDisplayLinkState(&sControlCenterDisplayLinkState);
+    }
 }
 
 static void LGControlCenterInjectHost(UIView *host) {
     CFTimeInterval profileStart = LGProfileBegin();
     if (!LGIsControlCenterModuleContainer(host) || !LGControlCenterEnabled()) {
         LGControlCenterDetachHost(host);
+        LGProfileEnd(@"control_center.inject", profileStart);
+        return;
+    }
+    if (!LGControlCenterHostIsVisible(host)) {
+        [LGControlCenterHostRegistry() addObject:host];
+        LGControlCenterSyncDisplayLinkActivity();
         LGProfileEnd(@"control_center.inject", profileStart);
         return;
     }

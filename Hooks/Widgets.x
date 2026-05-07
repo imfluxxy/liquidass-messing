@@ -110,14 +110,14 @@ static BOOL LGWidgetHasAncestorClassNamedWithinDepth(UIView *view, NSString *cla
 static void LGStartWidgetDisplayLink(void) {
     NSInteger fps = LG_prefersLiveCapture(@"Widgets.RenderingMode")
         ? LGPreferredLiveCaptureFramesPerSecond(LGWidgetLiveCaptureFPS())
-        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 1);
     LGStartDisplayLinkStateWithPreferenceKey(&sWidgetDisplayLinkState,
                                              fps,
                                              @"DisplayLink.Widgets.Enabled",
                                              ^{
         NSInteger nextFPS = LG_prefersLiveCapture(@"Widgets.RenderingMode")
             ? LGPreferredLiveCaptureFramesPerSecond(LGWidgetLiveCaptureFPS())
-            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 1);
         LGSetDisplayLinkStatePreferredFPS(&sWidgetDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"Widgets.RenderingMode")) LGWidgetsRefreshAttachedHosts();
         else LG_updateRegisteredGlassViews(LGUpdateGroupWidgets);

@@ -58,14 +58,14 @@ static void LGStartBannerDisplayLink(void) {
     if (sBannerDisplayLinkState.link || !LGBannerEnabled()) return;
     NSInteger fps = LG_prefersLiveCapture(@"Banner.RenderingMode")
         ? LGPreferredLiveCaptureFramesPerSecond(LGBannerLiveCaptureFPS())
-        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 1);
     LGStartDisplayLinkStateWithPreferenceKey(&sBannerDisplayLinkState,
                                              fps,
                                              @"DisplayLink.Banner.Enabled",
                                              ^{
         NSInteger nextFPS = LG_prefersLiveCapture(@"Banner.RenderingMode")
             ? LGPreferredLiveCaptureFramesPerSecond(LGBannerLiveCaptureFPS())
-            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 1);
         LGSetDisplayLinkStatePreferredFPS(&sBannerDisplayLinkState, nextFPS);
         LGRefreshBannerPlatterHosts();
     });

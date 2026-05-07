@@ -575,7 +575,7 @@ NSDictionary *LGScopedFPSSliderSetting(NSString *key) {
     NSString *subtitle = maxFPS >= 120
         ? LGLocalized(@"prefs.subtitle.fps_limit_120")
         : LGLocalized(@"prefs.subtitle.fps_limit_60");
-    return LGSliderSetting(key, LGLocalized(@"prefs.control.fps_limit"), subtitle, defaultFPS, 30.0, (CGFloat)maxFPS, 0);
+    return LGSliderSetting(key, LGLocalized(@"prefs.control.fps_limit"), subtitle, defaultFPS, 1.0, (CGFloat)maxFPS, 0);
 }
 
 NSString *LGFormatSliderValue(CGFloat value, NSInteger decimals) {

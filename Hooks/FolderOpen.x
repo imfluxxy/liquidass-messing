@@ -170,14 +170,14 @@ static void startFolderDisplayLink(void) {
     sFolderStopGeneration++;
     NSInteger fps = LG_prefersLiveCapture(@"FolderOpen.RenderingMode")
         ? LGPreferredLiveCaptureFramesPerSecond(LGFolderOpenLiveCaptureFPS())
-        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+        : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 1);
     LGStartDisplayLinkStateWithPreferenceKey(&sFolderDisplayLinkState,
                                              fps,
                                              @"DisplayLink.FolderOpen.Enabled",
                                              ^{
         NSInteger nextFPS = LG_prefersLiveCapture(@"FolderOpen.RenderingMode")
             ? LGPreferredLiveCaptureFramesPerSecond(LGFolderOpenLiveCaptureFPS())
-            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 30);
+            : LGPreferredFramesPerSecondForKey(@"Homescreen.FPS", 1);
         LGSetDisplayLinkStatePreferredFPS(&sFolderDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"FolderOpen.RenderingMode")) {
             for (UIView *host in LGFolderOpenHostRegistry().allObjects) {

@@ -60,8 +60,8 @@
 "prefs.subtitle.refraction" = "Backdrop bending through the glass view.";
 "prefs.subtitle.specular" = "Highlight strength on the glass view.";
 "prefs.subtitle.quality" = "Texture downscale for the glass view. Lower values improve performance but reduce visual quality.";
-"prefs.subtitle.fps_limit_120" = "Caps live glass rendering between 30 and 120 FPS. Lower values improve performance and battery life.";
-"prefs.subtitle.fps_limit_60" = "Caps live glass rendering between 30 and 60 FPS. Lower values improve performance.";
+"prefs.subtitle.fps_limit_120" = "Caps live glass rendering between 1 and 120 FPS. Lower values improve performance and battery life.";
+"prefs.subtitle.fps_limit_60" = "Caps live glass rendering between 1 and 60 FPS. Lower values improve performance.";
 "prefs.subtitle.floating_radius" = "Roundness of the glass view in floating mode.";
 "prefs.subtitle.full_screen_radius" = "Roundness of the glass view in full-screen mode.";
 "prefs.subtitle.home_button_radius" = "Roundness of the glass view on home button devices.";

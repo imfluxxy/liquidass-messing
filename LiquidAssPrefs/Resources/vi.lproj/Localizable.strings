@@ -43,8 +43,8 @@
 "prefs.subtitle.refraction" = "Mức bẻ cong hậu cảnh qua lớp kính.";
 "prefs.subtitle.specular" = "Độ mạnh của vùng sáng trên kính.";
 "prefs.subtitle.quality" = "Mức giảm độ phân giải kết cấu cho kính. Giá trị thấp sẽ tăng hiệu năng nhưng giảm chất lượng hiển thị.";
-"prefs.subtitle.fps_limit_120" = "Giới hạn render kính động từ 30 đến 120 FPS. Giá trị thấp sẽ cải thiện hiệu năng và pin.";
-"prefs.subtitle.fps_limit_60" = "Giới hạn render kính động từ 30 đến 60 FPS. Giá trị thấp sẽ cải thiện hiệu năng.";
+"prefs.subtitle.fps_limit_120" = "Giới hạn render kính động từ 1 đến 120 FPS. Giá trị thấp sẽ cải thiện hiệu năng và pin.";
+"prefs.subtitle.fps_limit_60" = "Giới hạn render kính động từ 1 đến 60 FPS. Giá trị thấp sẽ cải thiện hiệu năng.";
 "prefs.subtitle.floating_radius" = "Độ bo tròn của kính ở chế độ nổi.";
 "prefs.subtitle.full_screen_radius" = "Độ bo tròn của kính ở chế độ toàn màn hình.";
 "prefs.subtitle.home_button_radius" = "Độ bo tròn của kính trên máy có nút Home.";

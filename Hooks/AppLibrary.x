@@ -178,7 +178,7 @@ static void startAppLibDisplayLink(void) {
                 LG_prefersLiveCapture(@"AppLibrary.Search.RenderingMode");
     NSInteger fps = live
         ? LGPreferredLiveCaptureFramesPerSecond(LGAppLibraryLiveCaptureFPS())
-        : LGPreferredFramesPerSecondForKey(@"AppLibrary.FPS", 30);
+        : LGPreferredFramesPerSecondForKey(@"AppLibrary.FPS", 1);
     LGStartDisplayLinkStateWithPreferenceKey(&sAppLibraryDisplayLinkState,
                                              fps,
                                              @"DisplayLink.AppLibrary.Enabled",
@@ -187,7 +187,7 @@ static void startAppLibDisplayLink(void) {
                         LG_prefersLiveCapture(@"AppLibrary.Search.RenderingMode");
         NSInteger nextFPS = nextLive
             ? LGPreferredLiveCaptureFramesPerSecond(LGAppLibraryLiveCaptureFPS())
-            : LGPreferredFramesPerSecondForKey(@"AppLibrary.FPS", 30);
+            : LGPreferredFramesPerSecondForKey(@"AppLibrary.FPS", 1);
         LGSetDisplayLinkStatePreferredFPS(&sAppLibraryDisplayLinkState, nextFPS);
         if (LG_prefersLiveCapture(@"AppLibrary.RenderingMode") ||
             LG_prefersLiveCapture(@"AppLibrary.Search.RenderingMode")) {
