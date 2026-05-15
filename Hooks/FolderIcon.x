@@ -107,7 +107,20 @@ static void ensureFolderIconTintOverlay(UIView *self_) {
                                LGFolderIconCornerRadius(self_.layer.cornerRadius),
                                self_.layer,
                                NO);
-    [self_ bringSubviewToFront:tint];
+    LiquidGlassView *glass = objc_getAssociatedObject(self_, kFolderIconGlassKey);
+    UIView *contentAnchor = nil;
+    for (UIView *subview in self_.subviews) {
+        if (subview == glass || subview == tint) continue;
+        contentAnchor = subview;
+        break;
+    }
+    if (contentAnchor) {
+        [self_ insertSubview:tint belowSubview:contentAnchor];
+    } else if (glass) {
+        [self_ insertSubview:tint aboveSubview:glass];
+    } else {
+        [self_ bringSubviewToFront:tint];
+    }
 }
 
 static void injectIntoFolderIcon(UIView *self_) {

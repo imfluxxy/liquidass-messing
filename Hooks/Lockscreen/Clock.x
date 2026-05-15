@@ -31,6 +31,7 @@ static NSHashTable<UIView *> *sClockLegacyRevealHintViews = nil;
 static CFTimeInterval sClockActiveFPSUntil = 0.0;
 static BOOL sClockCoverSheetVisible = NO;
 static BOOL sClockObstacleRefreshPending = NO;
+static BOOL sClockRecoveryRefreshPending = NO;
 static NSInteger LGClockActiveDisplayFPS(void);
 static NSInteger LGClockIdleDisplayFPS(void);
 static void LGClockSetDisplayFPS(NSInteger fps);
@@ -38,6 +39,7 @@ static void LGClockBoostDisplayFPSForDuration(CFTimeInterval duration);
 static void LGClockSyncDisplayLinkActivity(void);
 static void LGClockSetCoverSheetVisible(BOOL visible);
 static void LGRefreshRegisteredClockHosts(void);
+static void LGScheduleClockRecoveryRefresh(void);
 static void LGClockCleanupRegisteredHosts(void);
 static void LGClockRegisterNotificationObstacleView(UIView *view);
 static void LGClockRegisterLegacyRevealHintView(UIView *view);
@@ -2590,6 +2592,27 @@ static void LGRefreshRegisteredClockHosts(void) {
     LGClockSyncDisplayLinkActivity();
 }
 
+static void LGScheduleClockRecoveryRefresh(void) {
+    if (sClockRecoveryRefreshPending) return;
+    sClockRecoveryRefreshPending = YES;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        sClockRecoveryRefreshPending = NO;
+        LGRefreshAllClockHosts();
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.08 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        LGRefreshAllClockHosts();
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        LGRefreshAllClockHosts();
+    });
+}
+
+void LGScheduleClockRecoveryRefreshForPresentationChange(void) {
+    LGScheduleClockRecoveryRefresh();
+}
+
 static void LGClockCleanupRegisteredHosts(void) {
     LGAssertMainThread();
     for (UIView *host in LGClockHostRegistry().allObjects) {
@@ -2788,6 +2811,62 @@ void LGRefreshAllClockHosts(void) {
 - (void)viewDidLayoutSubviews {
     %orig;
     LGRelayoutLegacyNotificationListForController((UIViewController *)self);
+}
+
+%end
+
+%hook CAMViewfinderView
+
+- (void)didMoveToWindow {
+    %orig;
+    LGScheduleClockRecoveryRefresh();
+}
+
+- (void)setHidden:(BOOL)hidden {
+    %orig(hidden);
+    LGScheduleClockRecoveryRefresh();
+}
+
+%end
+
+%hook CAMPreviewView
+
+- (void)didMoveToWindow {
+    %orig;
+    LGScheduleClockRecoveryRefresh();
+}
+
+- (void)setHidden:(BOOL)hidden {
+    %orig(hidden);
+    LGScheduleClockRecoveryRefresh();
+}
+
+%end
+
+%hook CAMPreviewViewControllerView
+
+- (void)didMoveToWindow {
+    %orig;
+    LGScheduleClockRecoveryRefresh();
+}
+
+- (void)setHidden:(BOOL)hidden {
+    %orig(hidden);
+    LGScheduleClockRecoveryRefresh();
+}
+
+%end
+
+%hook CAMFullscreenViewfinderView
+
+- (void)didMoveToWindow {
+    %orig;
+    LGScheduleClockRecoveryRefresh();
+}
+
+- (void)setHidden:(BOOL)hidden {
+    %orig(hidden);
+    LGScheduleClockRecoveryRefresh();
 }
 
 %end

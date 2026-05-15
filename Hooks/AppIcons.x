@@ -10,10 +10,8 @@ static void *kAppIconRetryKey = &kAppIconRetryKey;
 static void *kAppIconGlassKey = &kAppIconGlassKey;
 static void *kAppIconTintKey = &kAppIconTintKey;
 static void *kAppIconOverlayHostKey = &kAppIconOverlayHostKey;
-static void *kAppIconOriginalTransformKey = &kAppIconOriginalTransformKey;
 static void *kAppIconLastGlassFrameKey = &kAppIconLastGlassFrameKey;
 static void *kAppIconBackdropViewKey = &kAppIconBackdropViewKey;
-static const CGFloat kAppIconImageScale = 0.99;
 static BOOL sAppIconProbePending = NO;
 static CFTimeInterval sAppIconLastProbeTime = 0.0;
 
@@ -73,6 +71,22 @@ static NSString *LGAppIconSiblingClasses(UIView *view) {
     return [classes componentsJoinedByString:@","];
 }
 
+static BOOL LGAppIconSubtreeContainsWidgetContent(UIView *root) {
+    if (!root) return NO;
+    __block BOOL found = NO;
+    LGTraverseViews(root, ^(UIView *view) {
+        if (found || view == root) return;
+        NSString *className = NSStringFromClass(view.class);
+        if ([className isEqualToString:@"SBHWidgetContainerView"] ||
+            [className isEqualToString:@"BSUIScrollView"] ||
+            [className containsString:@"Widget"] ||
+            [className hasPrefix:@"WG"]) {
+            found = YES;
+        }
+    });
+    return found;
+}
+
 static NSString *LGAppIconClassificationFailureReason(UIView *view) {
     if (!view.window) return @"no-window";
     if (![NSStringFromClass(view.class) isEqualToString:@"SBIconImageView"]) return @"not-SBIconImageView";
@@ -95,6 +109,7 @@ static NSString *LGAppIconClassificationFailureReason(UIView *view) {
         return [NSString stringWithFormat:@"grandparent=%@", NSStringFromClass(grandparent.class)];
     }
     if (LGResponderChainContainsClassNamed(grandparent, @"SBHWidgetStackViewController")) return @"grandparent-widget-stack-responder";
+    if (LGAppIconSubtreeContainsWidgetContent(grandparent)) return @"grandparent-widget-subtree";
 
     UIView *iconListView = grandparent.superview;
     if (!iconListView) return @"no-icon-list";
@@ -206,12 +221,6 @@ static void removeAppIconOverlays(UIView *view) {
     if (glass) [glass removeFromSuperview];
     objc_setAssociatedObject(host, kAppIconGlassKey, nil, OBJC_ASSOCIATION_ASSIGN);
 
-    NSValue *originalTransform = objc_getAssociatedObject(view, kAppIconOriginalTransformKey);
-    if (originalTransform) {
-        view.transform = originalTransform.CGAffineTransformValue;
-    } else {
-        view.transform = CGAffineTransformIdentity;
-    }
     LGRemoveLiveBackdropCaptureView(host, kAppIconBackdropViewKey);
     UIView *overlayHost = objc_getAssociatedObject(view, kAppIconOverlayHostKey);
     if (overlayHost) [overlayHost removeFromSuperview];
@@ -303,13 +312,6 @@ static void injectIntoAppIcon(UIView *view) {
         [host insertSubview:glass atIndex:0];
         objc_setAssociatedObject(host, kAppIconGlassKey, glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
-    if (!objc_getAssociatedObject(view, kAppIconOriginalTransformKey)) {
-        objc_setAssociatedObject(view, kAppIconOriginalTransformKey,
-                                 [NSValue valueWithCGAffineTransform:view.transform],
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-    view.transform = CGAffineTransformMakeScale(kAppIconImageScale, kAppIconImageScale);
-
     glass.frame = frame;
     glass.cornerRadius = LGAppIconCornerRadius();
     glass.bezelWidth = LGAppIconBezelWidth();
@@ -370,12 +372,6 @@ static void injectIntoAppIcon(UIView *view) {
         return;
     }
     ensureAppIconTintOverlay(self_);
-    if (!objc_getAssociatedObject(self_, kAppIconOriginalTransformKey)) {
-        objc_setAssociatedObject(self_, kAppIconOriginalTransformKey,
-                                 [NSValue valueWithCGAffineTransform:self_.transform],
-                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-    self_.transform = CGAffineTransformMakeScale(kAppIconImageScale, kAppIconImageScale);
     UIView *host = LGAppIconHostView(self_);
     LiquidGlassView *glass = objc_getAssociatedObject(host, kAppIconGlassKey);
     if (!glass) {

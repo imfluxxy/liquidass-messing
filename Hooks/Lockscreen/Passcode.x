@@ -5,6 +5,7 @@
 
 void LGCleanupLockscreenHost(UIView *host);
 void LGAttachLockHostIfNeeded(UIView *view);
+void LGScheduleClockRecoveryRefreshForPresentationChange(void);
 
 static void *kLGPasscodeTintKey = &kLGPasscodeTintKey;
 static void *kLGPasscodeButtonTintKey = &kLGPasscodeButtonTintKey;
@@ -145,6 +146,7 @@ static void LGUpdatePasscodeVisible(BOOL visible) {
     LGDebugLog(@"passcode visible state=%d", visible);
     dispatch_async(dispatch_get_main_queue(), ^{
         LGApplyPasscodeBackdropSuppressionState();
+        LGScheduleClockRecoveryRefreshForPresentationChange();
     });
 }
 
