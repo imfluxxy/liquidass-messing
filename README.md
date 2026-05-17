@@ -12,9 +12,10 @@ This tweak is incomplete, issues WILL happen.
 - app library
 - settings app
 - clock
+- or any view with the custom views feature introduced in 0.0.9a
 
 ## Quick explanation on how this tweak works
-- the tweak injects a `LiquidGlassView` into specific springboard surfaces, then feeds that view a backdrop source plus screenspace origin data
+- the tweak injects a `LiquidGlassView` into specific/custom springboard surfaces, then feeds that view a backdrop source plus screenspace origin data
 - most surfaces are still snapshot / wallpaper based:
   - homescreen, dock, folders, widgets, context menus, App Library, lockscreen platters, etc usually sample from cached wallpaper or cached composite snapshots
   - on iOS 15 and lower it can still decode cpbitmap wallpapers directly
