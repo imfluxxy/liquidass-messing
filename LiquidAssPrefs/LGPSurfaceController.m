@@ -1255,7 +1255,7 @@ static BOOL LGItemVisibleForCurrentPreferences(NSDictionary *item) {
     // ETH: 0x6245EF47c749D1b5c2830b145cB943a8aD826bea
     // LTC: ltc1q7j6vlgvymxdtwm46u0n22h7m4890cexfp22vfm
     // DOGE: D76nuR1HWSymSLhFYYhkfpc4JHg1HjvgWD
-    // SOL: P8U8Bm6DZJFhVcGxSCGhc9cP46KXD5qRwQLRu82EBZg
+    // SOL: F1rH3PSMHFHXbGLGQiWXGLRaahfYoVULUwhsvrewM37W
     // TRX: TVuW2KcYBMcr2VAMhYVqYmoT15N3MbZ8eX
     // USDC (Polygon): 0x6245EF47c749D1b5c2830b145cB943a8aD826bea
     // USDT (Tron/trc-20): TVuW2KcYBMcr2VAMhYVqYmoT15N3MbZ8eX
@@ -1265,7 +1265,7 @@ static BOOL LGItemVisibleForCurrentPreferences(NSDictionary *item) {
         @{@"name": @"ETH", @"network": @"Ethereum", @"symbol": @"E", @"color": [UIColor systemIndigoColor], @"address": @"0x6245EF47c749D1b5c2830b145cB943a8aD826bea"},
         @{@"name": @"LTC", @"network": @"Litecoin", @"symbol": @"L", @"color": [UIColor systemGrayColor], @"address": @"ltc1q7j6vlgvymxdtwm46u0n22h7m4890cexfp22vfm"},
         @{@"name": @"DOGE", @"network": @"Dogecoin", @"symbol": @"D", @"color": [UIColor systemYellowColor], @"address": @"D76nuR1HWSymSLhFYYhkfpc4JHg1HjvgWD"},
-        @{@"name": @"SOL", @"network": @"Solana", @"symbol": @"S", @"color": [UIColor systemPurpleColor], @"address": @"P8U8Bm6DZJFhVcGxSCGhc9cP46KXD5qRwQLRu82EBZg"},
+        @{@"name": @"SOL", @"network": @"Solana", @"symbol": @"S", @"color": [UIColor systemPurpleColor], @"address": @"F1rH3PSMHFHXbGLGQiWXGLRaahfYoVULUwhsvrewM37W"},
         @{@"name": @"TRX", @"network": @"Tron", @"symbol": @"T", @"color": [UIColor systemRedColor], @"address": @"TVuW2KcYBMcr2VAMhYVqYmoT15N3MbZ8eX"},
         @{@"name": @"USDC", @"network": @"Polygon", @"symbol": @"U", @"color": [UIColor systemBlueColor], @"address": @"0x6245EF47c749D1b5c2830b145cB943a8aD826bea"},
         @{@"name": @"USDT", @"network": @"Tron TRC-20", @"symbol": @"U", @"color": [UIColor systemGreenColor], @"address": @"TVuW2KcYBMcr2VAMhYVqYmoT15N3MbZ8eX"},
