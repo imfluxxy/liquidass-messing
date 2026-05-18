@@ -1,6 +1,7 @@
 #import "../LiquidGlass.h"
 #import "../Shared/LGHookSupport.h"
 #import "../Shared/LGPrefAccessors.h"
+#import "../Shared/LGBannerCaptureSupport.h"
 #import <objc/runtime.h>
 
 static void *kKeyboardGlassKey = &kKeyboardGlassKey;
@@ -97,8 +98,6 @@ static void LGKeyboardAddTopBorder(UIView *host) {
     if (existingBorder) [existingBorder removeFromSuperlayer];
     
     CGFloat borderHeight = LGKeyboardBorderFadeDistance();
-    CALayer *borderLayer = [CALayer layer];
-    
     CAGradientLayer *gradientLayer = [CAGradientLayer layer];
     gradientLayer.startPoint = CGPointMake(0.5, 0.0);
     gradientLayer.endPoint = CGPointMake(0.5, 1.0);
