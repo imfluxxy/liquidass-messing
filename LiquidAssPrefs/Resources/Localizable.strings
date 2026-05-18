@@ -302,3 +302,14 @@
 "prefs.custom_views.delete_rule.title" = "Delete Rule";
 "prefs.custom_views.delete_rule.subtitle" = "Remove this custom view rule.";
 "prefs.custom_views.delete_rule.confirm" = "Delete this custom view rule and all of its settings?";
+
+"prefs.section.keyboard.title" = "Keyboard";
+"prefs.section.keyboard.subtitle" = "keyboard test yes yes";
+"prefs.control.transparency" = "transparency";
+"prefs.subtitle.transparency" = "background opacity (0.0 = fully transparent, 1.0 = opaque)";
+"prefs.control.button_radius" = "button corner radius";
+"prefs.subtitle.button_radius" = "roundness of each key buttons, the qwerty one";
+"prefs.control.border_fade" = "fade or gradient";
+"prefs.subtitle.border_fade" = "how far the top border fades downward";
+"prefs.control.border_opacity" = "border opacity";
+"prefs.subtitle.border_opacity" = "strength of the top border line";
