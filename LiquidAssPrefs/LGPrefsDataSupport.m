@@ -262,6 +262,7 @@ BOOL LGPreferenceRequiresRespring(NSString *key) {
             @"AppLibrary.Search.Enabled",
             @"Widgets.Enabled",
             @"ControlCenter.Enabled",
+            @"Keyboard.Enabled",
         ]];
     });
     return [respringKeys containsObject:key];
@@ -781,6 +782,22 @@ NSArray<NSDictionary *> *LGContextMenuItems(void) {
     ];
 }
 
+NSArray<NSDictionary *> *LGKeyboardItems(void) {
+    return @[
+        LGSectionSetting(LGLocalized(@"prefs.section.keyboard.title"), LGLocalized(@"prefs.section.keyboard.subtitle")),
+        LGGlassEnabledSetting(@"Keyboard.Enabled", YES),
+        LGSliderSetting(@"Keyboard.Transparency", LGLocalized(@"prefs.control.transparency"), LGLocalized(@"prefs.subtitle.transparency"), 0.85, 0.3, 1.0, 2),
+        LGGlassCornerRadiusSetting(@"Keyboard.TopCornerRadius", 28.0, 0.0, 40.0, 1),
+        LGSliderSetting(@"Keyboard.ButtonCornerRadius", LGLocalized(@"prefs.control.button_radius"), LGLocalized(@"prefs.subtitle.button_radius"), 8.0, 0.0, 16.0, 1),
+        LGSliderSetting(@"Keyboard.BorderFadeDistance", LGLocalized(@"prefs.control.border_fade"), LGLocalized(@"prefs.subtitle.border_fade"), 40.0, 10.0, 100.0, 0),
+        LGSliderSetting(@"Keyboard.BorderAlpha", LGLocalized(@"prefs.control.border_opacity"), LGLocalized(@"prefs.subtitle.border_opacity"), 0.4, 0.0, 1.0, 2),
+        LGGlassCornerRadiusSetting(@"Keyboard.EmojiCornerRadius", 28.0, 0.0, 40.0, 1),
+        LGGlassDarkTintSetting(@"Keyboard.DarkTintAlpha", 0.08, 0.0, 1.0, 2),
+        LGGlassLightTintSetting(@"Keyboard.LightTintAlpha", 0.15, 0.0, 1.0, 2),
+        LGGlassCustomTintColorSetting(@"Keyboard.CustomTintColor"),
+    ];
+}
+
 NSArray<NSDictionary *> *LGLockscreenItems(void) {
     NSMutableArray<NSDictionary *> *items = [NSMutableArray arrayWithArray:@[
         LGScopedFPSSliderSetting(@"Lockscreen.FPS"),
@@ -1236,6 +1253,7 @@ NSArray<NSDictionary *> *LGAllSurfaceItems(void) {
     [all addObjectsFromArray:LGHomescreenItems()];
     [all addObjectsFromArray:LGLockscreenItems()];
     [all addObjectsFromArray:LGAppLibraryItems()];
+    [all addObjectsFromArray:LGKeyboardItems()];
     return [all copy];
 }
 
