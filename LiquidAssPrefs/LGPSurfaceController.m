@@ -198,6 +198,11 @@ static BOOL LGItemVisibleForCurrentPreferences(NSDictionary *item) {
         _screenSubtitle = [LGLocalized(@"prefs.misc.live_capture.subtitle") copy];
         _accentColor = [UIColor systemTealColor];
         _items = [LGLiveCaptureItems() copy];
+    } else if ([_screenIdentifier isEqualToString:@"Keyboard"]) {
+        _screenTitle = [LGLocalized(@"prefs.section.keyboard.title") copy];
+        _screenSubtitle = [LGLocalized(@"prefs.section.keyboard.subtitle") copy];
+        _accentColor = [UIColor systemGrayColor];
+        _items = [LGKeyboardItems() copy];
     }
     self.title = _screenTitle;
 }
@@ -388,10 +393,19 @@ static BOOL LGItemVisibleForCurrentPreferences(NSDictionary *item) {
 
 - (void)openCustomViewInjection {
     LGPSurfaceController *controller = [[LGPSurfaceController alloc] initWithTitle:LGLocalized(@"prefs.misc.custom_views.title")
-                                                                          subtitle:LGLocalized(@"prefs.misc.custom_views.subtitle")
-                                                                         tintColor:[UIColor systemPurpleColor]
-                                                                        identifier:@"CustomViews"
-                                                                             items:LGCustomViewInjectionItems()];
+                                                                           subtitle:LGLocalized(@"prefs.misc.custom_views.subtitle")
+                                                                          tintColor:[UIColor systemPurpleColor]
+                                                                         identifier:@"CustomViews"
+                                                                              items:LGCustomViewInjectionItems()];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)openKeyboard {
+    LGPSurfaceController *controller = [[LGPSurfaceController alloc] initWithTitle:LGLocalized(@"prefs.section.keyboard.title")
+                                                                           subtitle:LGLocalized(@"prefs.section.keyboard.subtitle")
+                                                                          tintColor:[UIColor systemGrayColor]
+                                                                         identifier:@"Keyboard"
+                                                                              items:LGKeyboardItems()];
     [self.navigationController pushViewController:controller animated:YES];
 }
 
