@@ -180,18 +180,6 @@ static void LGKeyboardStyleEmojiSearchBar(UIView *host) {
     }
 }
 
-static void LGKeyboardScheduleRetry(UIView *host) {
-    if ([objc_getAssociatedObject(host, kKeyboardRetryKey) boolValue]) return;
-    objc_setAssociatedObject(host, kKeyboardRetryKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-        objc_setAssociatedObject(host, kKeyboardRetryKey, nil, OBJC_ASSOCIATION_ASSIGN);
-        if (host.window) {
-        }
-    });
-}
-
 static void LGKeyboardInject(UIView *host) {
     CFTimeInterval profileStart = LGProfileBegin();
     
