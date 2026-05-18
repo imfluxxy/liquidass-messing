@@ -105,7 +105,7 @@ static NSString *LGFormatRuntimeCacheUsage(unsigned long long bytes) {
         else if ([surface isEqualToString:@"MoreOptions"]) [self openMoreOptions];
         else if ([surface isEqualToString:@"PrefsSettings"]) [self openPrefsSettings];
         else if ([surface isEqualToString:@"Experimental"]) [self openMoreOptions];
-        else if ([surface isEqualToString:@"CustomViews"] || [surface hasPrefix:@"CustomViewRule:"] || [surface isEqualToString:@"LiveCapture"]) [self openMoreOptions];
+        else if ([surface isEqualToString:@"CustomViews"] || [surface hasPrefix:@"CustomViewRule:"] || [surface isEqualToString:@"LiveCapture"] || [surface isEqualToString:@"Keyboard"]) [self openMoreOptions];
     });
 }
 
